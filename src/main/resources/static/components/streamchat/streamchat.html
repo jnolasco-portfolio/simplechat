@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Stream Assistant</title>
+    <link rel="stylesheet" href="/components/streamchat/streamchat.css" />
+  </head>
+  <body>
+    <main class="gemini-ui-engine initial-landing">
+      <div id="landing-greeting">
+        <h1>Stream Chat Assistant</h1>
+      </div>
+
+      <div
+        id="chat-log"
+        role="log"
+        aria-live="polite"
+        style="display: none"
+      ></div>
+
+      <form id="chat-form" autocomplete="off">
+        <div class="input-capsule">
+          <input
+            type="text"
+            id="user-input"
+            placeholder="Ask me anything..."
+            required
+          />
+          <button
+            type="submit"
+            id="send-btn"
+            class="embedded-send-btn"
+            disabled
+            aria-label="Send message"
+          >
+            <svg viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"
+              />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </main>
+    <script src="/components/streamchat/streamchat.js"></script>
+  </body>
+</html>

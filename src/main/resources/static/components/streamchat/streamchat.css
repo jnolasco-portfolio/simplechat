@@ -1,0 +1,279 @@
+/* ==========================================================================
+   1. THEME DESIGN TOKENS
+   ========================================================================== */
+:root {
+  --chat-bg-main: #131314;
+  --chat-bg-capsule: #1e1f20;
+  --chat-bg-capsule-focus: #282a2c;
+  --chat-text-main: #e3e3e3;
+  --chat-text-muted: #80868b;
+
+  --btn-bg-active: #a8c7fa;
+  --btn-text-active: #042f62;
+  --btn-bg-cancel: #3b3c3d;
+  --btn-text-cancel: #f2f2f2;
+
+  --chat-font-family:
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --chat-max-width: 740px;
+  --chat-input-height: 3.5rem;
+}
+
+/* ==========================================================================
+   2. GLOBAL LAYOUT FRAMEWORK
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--chat-bg-main);
+  color: var(--chat-text-main);
+  font-family: var(--chat-font-family);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.gemini-ui-engine {
+  width: 100%;
+  max-width: var(--chat-max-width);
+  height: 100vh;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.gemini-ui-engine.initial-landing {
+  justify-content: center;
+}
+
+.gemini-ui-engine:not(.initial-landing) {
+  justify-content: flex-start;
+}
+
+#landing-greeting {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+#landing-greeting h1 {
+  font-size: 2.75rem;
+  font-weight: 400;
+  color: var(--chat-text-main);
+  letter-spacing: -0.025em;
+}
+
+#chat-log {
+  flex: 1;
+  overflow-y: auto;
+  width: 100%;
+  margin-bottom: 2rem;
+  padding-top: 2rem;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.message-block {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.message-block.layout-user {
+  align-items: flex-end;
+}
+
+.message-block.layout-bot {
+  align-items: flex-start;
+}
+
+.msg {
+  max-width: 75%;
+  padding: 0.85rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+  animation: bubbleFadeIn 0.2s ease-out forwards;
+}
+
+.msg-user {
+  background-color: #2b2a33;
+  color: var(--chat-text-main);
+  border-bottom-right-radius: 0.25rem;
+}
+
+.msg-bot {
+  background-color: var(--chat-bg-capsule);
+  color: var(--chat-text-main);
+  border-bottom-left-radius: 0.25rem;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.msg-bot code {
+  background-color: #0f0f10;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+#chat-form {
+  width: 100%;
+}
+
+/* ==========================================================================
+   3. CAPSULE LAYOUT ENGINE (The Input Pill Structure)
+   ========================================================================== */
+.input-capsule {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: var(--chat-bg-capsule);
+  border-radius: 2rem;
+  padding: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.input-capsule:focus-within {
+  background-color: var(--chat-bg-capsule-focus);
+}
+
+.input-capsule input[type='text'] {
+  width: 100%;
+  height: var(--chat-input-height);
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--chat-text-main);
+  padding-left: 1.5rem;
+  padding-right: 4rem;
+  font-size: 1.05rem;
+}
+
+.input-capsule input[type='text']::placeholder {
+  color: var(--chat-text-muted);
+}
+
+.input-capsule input[type='text']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.embedded-send-btn {
+  position: absolute;
+  right: 0.5rem;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 50%;
+  border: none;
+  outline: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  transition:
+    background-color 0.2s,
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.2s,
+    visibility 0.2s;
+  transform: scale(0.75);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.embedded-send-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.embedded-send-btn:disabled {
+  background-color: transparent;
+  color: transparent;
+  opacity: 0;
+  visibility: hidden;
+  cursor: not-allowed;
+}
+
+.embedded-send-btn:not(:disabled) {
+  background-color: var(--btn-bg-active);
+  color: var(--btn-text-active);
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  cursor: pointer;
+}
+
+#chat-form.waiting-on-response .embedded-send-btn {
+  background-color: var(--btn-bg-cancel) !important;
+  color: var(--btn-text-cancel) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: scale(1) !important;
+  cursor: pointer !important;
+}
+
+#chat-form.waiting-on-response .embedded-send-btn svg {
+  display: none;
+}
+#chat-form.waiting-on-response .embedded-send-btn::after {
+  content: '';
+  width: 10px;
+  height: 10px;
+  background-color: var(--btn-text-cancel);
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   4. PROGRESSIVE RESPONSE SKELETON LOADERS
+   ========================================================================== */
+.skeleton-loading-bubble .msg-bot {
+  width: 60%;
+  background-color: transparent !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-left: 0.5rem !important;
+}
+
+.skeleton-line {
+  height: 1rem;
+  width: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #1e1f20 25%, #2a2b2d 50%, #1e1f20 75%);
+  background-size: 200% 100%;
+  animation: geminiShimmer 1.5s infinite linear;
+}
+
+.skeleton-line.short {
+  width: 65%;
+}
+
+@keyframes geminiShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes bubbleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
