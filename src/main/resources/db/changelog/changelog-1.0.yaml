@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: '1.0'
+      author: jnolasco
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: SPRING_AI_CHAT_MEMORY
+      changes:
+        - createTable:
+            tableName: SPRING_AI_CHAT_MEMORY
+            columns:
+              - column:
+                  name: conversation_id
+                  type: VARCHAR(36)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content
+                  type: TEXT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: type
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: timestamp
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: '1.1'
+      author: jnolasco
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - sqlCheck:
+                expectedResult: 0
+                sql: |
+                  SELECT COUNT(*) FROM information_schema.constraint_column_usage
+                  WHERE table_name='SPRING_AI_CHAT_MEMORY' AND constraint_name='SPRING_AI_CHAT_MEMORY_TYPE_CHECK'
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE SPRING_AI_CHAT_MEMORY
+              ADD CONSTRAINT SPRING_AI_CHAT_MEMORY_TYPE_CHECK
+              CHECK (type IN ('USER','ASSISTANT','SYSTEM','TOOL'));
+
+  - changeSet:
+      id: '1.2'
+      author: jnolasco
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - indexExists:
+                indexName: SPRING_AI_CHAT_MEMORY_CONVERSATION_ID_TIMESTAMP_IDX
+      changes:
+        - createIndex:
+            indexName: SPRING_AI_CHAT_MEMORY_CONVERSATION_ID_TIMESTAMP_IDX
+            tableName: SPRING_AI_CHAT_MEMORY
+            columns:
+              - column:
+                  name: conversation_id
+              - column:
+                  name: timestamp

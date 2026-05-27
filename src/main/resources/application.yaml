@@ -14,7 +14,9 @@ spring:
       memory:
         repository:
           jdbc:
-            initialize-schema: always
+            initialize-schema: never
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
   datasource:
     url: jdbc:postgresql://localhost:${DB_PORT}/chat_memory
     username: ${DB_USERNAME}
