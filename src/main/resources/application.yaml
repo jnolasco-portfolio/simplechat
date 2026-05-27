@@ -10,5 +10,19 @@ spring:
         base-url: 'http://localhost:11434/v1'
         api-key: '${OPENAI_API_KEY}'
         model: 'granite4:7b-a1b-h'
-        temperature: 1.0
-        top-p: 0.95
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: always
+  datasource:
+    url: jdbc:postgresql://localhost:${DB_PORT}/chat_memory
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+# Logging Configuration
+logging:
+  level:
+    org.springframework.jdbc.core.JdbcTemplate: TRACE
+    org.springframework.jdbc.core.StatementCreatorUtils: TRACE

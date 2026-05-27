@@ -112,10 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.focus();
   }
 
-  async function fetchStreamWithRetry(url, retries = 3) {
+  async function fetchStreamWithRetry(url, options = {}, retries = 3) {
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, options);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response;
       } catch (e) {
@@ -148,26 +148,36 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function streamBackEndReply(prompt, loadingNode, signal) {
+    const userId = '9999999901';
     try {
-      const response = await fetchStreamWithRetry('/stream?message=' + encodeURIComponent(prompt));
+      const response = await fetchStreamWithRetry(
+        `/stream/${userId}/chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain'
+          },
+          body: prompt
+        }
+      );
       const reader = response.body.getReader();
-      
+
       // Remove loading skeleton
       loadingNode.remove();
-      
+
       // Create bot message element for streaming content
       const contentElement = appendBotStreamingNode();
-      
+
       // Process the stream
       await processStream(reader, contentElement, signal);
-      
+
       resetInputCapsuleToReady();
     } catch (error) {
       if (error.name === 'AbortError') {
         // User cancelled, already handled
         return;
       }
-      
+
       console.error('Error fetching chatbot response:', error);
       loadingNode.remove();
       appendMessageNode('Error connecting to AI service. Please try again.', 'bot');
