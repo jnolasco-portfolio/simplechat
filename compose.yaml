@@ -1,10 +1,25 @@
 services:
-  chat_memory:
+
+  service:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - .:/workspaces:cached
+    depends_on:
+      - chat_memory_db
+    command: sleep infinity
+
+  chat_memory_db:
     image: postgres:15
-    container_name: chat_memory
+    container_name: chat_memory_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: chat_memory
+      POSTGRES_DB: chat_memory_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: chat_memory_db
+      DB_PORT: 5432
     ports:
       - "5432:5432"

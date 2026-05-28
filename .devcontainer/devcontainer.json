@@ -1,0 +1,54 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+  "name": "simple-chat",
+  "dockerComposeFile": "../compose.yaml",
+  "service": "service",
+  "workspaceFolder": "/workspaces",
+
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "25",
+      "jdkDistro": "amzn",
+      "installGradle": true,
+      "installMaven": true
+    },
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "ohMyZshTheme": "agnoster",
+      "ohMyZshPlugins": ["git", "docker", "docker-compose"]
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "installGitHubCli": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-ossdata.vscode-pgsql",
+        "developersoapbox.vscode-springboot-snippets",
+        "vmware.vscode-boot-dev-pack",
+        "mechatroner.rainbow-csv",
+        "tal7aouy.rainbow-bracket",
+        "vscjava.vscode-java-pack",
+        "mblode.pretty-formatter"
+      ]
+    }
+  }
+
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  // "features": {},
+
+  // Use 'forwardPorts' to make a list of ports inside the container available locally.
+  // "forwardPorts": [],
+
+  // Use 'postCreateCommand' to run commands after the container is created.
+  // "postCreateCommand": "uname -a",
+
+  // Configure tool-specific properties.
+  // "customizations": {},
+
+  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+  // "remoteUser": "root"
+}

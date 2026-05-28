@@ -5,10 +5,14 @@ spring:
   application:
     name: simplechat
   ai:
+    model:
+      audio:
+        speech: disabled
+        transcription: disabled
     openai:
+      base-url: 'http://host.docker.internal:11434/v1'
+      api-key: '${OPENAI_API_KEY}'
       chat:
-        base-url: 'http://localhost:11434/v1'
-        api-key: '${OPENAI_API_KEY}'
         model: 'granite4:7b-a1b-h'
     chat:
       memory:
@@ -18,9 +22,9 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
   datasource:
-    url: jdbc:postgresql://localhost:${DB_PORT}/chat_memory
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/chat_memory_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
 
 # Logging Configuration
