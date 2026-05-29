@@ -13,26 +13,29 @@
       "installGradle": true,
       "installMaven": true
     },
-    "ghcr.io/devcontainers/features/common-utils:2": {
+    "ghcr.io/devcontainers/features/github-cli:1": {  
+      "installGitHubCli": true
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+      "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,
       "installOhMyZsh": true,
       "ohMyZshTheme": "agnoster",
       "ohMyZshPlugins": ["git", "docker", "docker-compose"]
     },
-    "ghcr.io/devcontainers/features/github-cli:1": {
-      "installGitHubCli": true
-    }
   },
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-ossdata.vscode-pgsql",
         "developersoapbox.vscode-springboot-snippets",
+        "SonalSithara.spring-code-generator",
         "vmware.vscode-boot-dev-pack",
         "mechatroner.rainbow-csv",
         "tal7aouy.rainbow-bracket",
         "vscjava.vscode-java-pack",
-        "mblode.pretty-formatter"
+        "mblode.pretty-formatter",
+        "ms-azuretools.vscode-docker"
       ]
     }
   }

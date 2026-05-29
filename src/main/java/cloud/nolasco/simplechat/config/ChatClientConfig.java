@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import cloud.nolasco.simplechat.tools.datetime.DateTimeTools;
+
 @Configuration
 public class ChatClientConfig {
 
@@ -18,6 +20,7 @@ public class ChatClientConfig {
   public ChatClient chatClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
     return chatClientBuilder
         .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+        .defaultTools(new DateTimeTools())
         .build();
   }
 
