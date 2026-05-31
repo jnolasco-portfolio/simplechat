@@ -30,6 +30,7 @@ public class ChatClientConfig {
   public ChatClient chatClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
     SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(systemPrompt);
     Prompt systemPrompt = systemPromptTemplate.create(Map.of("assistantName", "Sofía",
+        "DevelopmentName", "Altavista",
         "greeting", DateTimeTools.greeting()));
 
     return chatClientBuilder

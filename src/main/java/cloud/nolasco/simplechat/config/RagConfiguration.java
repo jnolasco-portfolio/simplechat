@@ -34,6 +34,9 @@ public class RagConfiguration {
   @Value("vectorstore.json")
   private String vectorStoreName;
 
+  @Value("classpath:/context/project-inventory.md")
+  private Resource amahnaBrochure;
+
   @Bean
   public SimpleVectorStore vectorStore(EmbeddingModel embedddelingModel) {
 
@@ -49,6 +52,7 @@ public class RagConfiguration {
       loadData(vectorStore, developerProfile);
       loadData(vectorStore, website);
       loadData(vectorStore, brochure);
+      loadData(vectorStore, amahnaBrochure);
       vectorStore.save(getVectorStoreFile());
     }
 
