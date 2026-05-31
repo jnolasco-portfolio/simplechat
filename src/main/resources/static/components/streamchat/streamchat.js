@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentAbortController = null;
 
+  // Generate a unique user ID once on page load
+  let userId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+
   userInput.addEventListener('input', () => {
     if (chatForm.classList.contains('waiting-on-response')) return;
 
@@ -148,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function streamBackEndReply(prompt, loadingNode, signal) {
-    const userId = '9999999901';
     try {
       const response = await fetchStreamWithRetry(
         `/stream/${userId}/chat`,

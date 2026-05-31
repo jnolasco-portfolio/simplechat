@@ -10,10 +10,16 @@ spring:
         speech: disabled
         transcription: disabled
     openai:
-      base-url: 'http://host.docker.internal:11434/v1'
+      timeout: 350s
+      base-url: ${BASE_URL}  #'http://host.docker.internal:11434/v1'
       api-key: '${OPENAI_API_KEY}'
       chat:
-        model: 'granite4:7b-a1b-h'
+        model: ${CHAT_MODEL}  
+        #'granite4:7b-a1b-h'
+      embedding:
+        model: ${EMBEDDING_MODEL}
+
+          #mxbai-embed-large
     chat:
       memory:
         repository:

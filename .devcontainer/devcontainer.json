@@ -35,7 +35,8 @@
         "tal7aouy.rainbow-bracket",
         "vscjava.vscode-java-pack",
         "mblode.pretty-formatter",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "ms-vsliveshare.vsliveshare"
       ]
     }
   }
