@@ -13,8 +13,10 @@ services:
     command: sleep infinity
 
   chat_memory_db:
-    image: postgres:15
+    image: pgvector/pgvector:pg16
     container_name: chat_memory_db
+    labels:
+      - "org.springframework.boot.service-connection=postgres"
     environment:
       TZ: "America/Mexico_City"
       POSTGRES_USER: postgres
