@@ -46,7 +46,7 @@ public class ChatController {
                 .stream()
                 .content()
                 .retry(3)
-                .onErrorResume(e -> Flux.just("Lo siento, la conexoin fue interrumpida. Please try again."));
+                .onErrorResume(e -> Flux.just("Lo siento, la conexión fue interrumpida. Please try again."));
     }
 
     @GetMapping("/{userId}/history")

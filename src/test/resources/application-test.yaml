@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    enabled: false
+  ai:
+    openai:
+      base-url: http://localhost:11434/v1
+      api-key: test-key
+      chat:
+        model: test-model
+      embedding:
+        model: test-embedding
+    vectorstore:
+      pgvector:
+        initialize-schema: false
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: never
+
+spring.main.allow-bean-definition-overriding: true
