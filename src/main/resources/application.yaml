@@ -26,7 +26,7 @@ spring:
         distance-type: COSINE_DISTANCE
         dimensions: 1536
         max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
-        initialize-schema: true # Options: always, never, on-startup
+        initialize-schema: false
 
     chat:
       memory:
