@@ -1,14 +1,10 @@
 package cloud.nolasco.simplechat.service;
 
 import java.util.List;
-import java.util.logging.Logger;
 
-import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.ExtractedTextFormatter;
 import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.ai.vectorstore.SimpleVectorStore;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -16,7 +12,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
-import kotlin.jvm.internal.SerializedIr;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -25,20 +20,17 @@ public class ReferenceDocsLoader {
 
   private final JdbcClient jdbcClient;
   private final VectorStore vectorStore;
-  @Value("classPath:/context/developer-profile.md")
+  @Value("classpath:/context/developer-profile.md")
   private Resource developerProfile;
 
-  @Value("classPath:/context/project-overview.md")
+  @Value("classpath:/context/project-overview.md")
   private Resource website;
 
-  @Value("classPath:/context/project-brochure.md")
+  @Value("classpath:/context/project-brochure.md")
   private Resource brochure;
 
-  @Value("vectorstore.json")
-  private String vectorStoreName;
-
   @Value("classpath:/context/project-inventory.md")
-  private Resource amahnaBrochure;
+  private Resource projectInventory;
 
   public ReferenceDocsLoader(JdbcClient jdbcClient, VectorStore vectorStore) {
     this.jdbcClient = jdbcClient;
@@ -55,10 +47,11 @@ public class ReferenceDocsLoader {
       log.info("Current count of the Vector Store: {}", count);
       if (count == 0) {
         log.info("Loading context documents into Vector Store");
-        loadData(vectorStore, developerProfile);
-        loadData(vectorStore, website);
-        loadData(vectorStore, brochure);
-        loadData(vectorStore, amahnaBrochure);
+        // loadData(vectorStore, developerProfile);
+        safeLoad(developerProfile);
+        safeLoad(website);
+        safeLoad(brochure);
+        safeLoad(projectInventory);
 
         log.info("Application is ready");
       }
@@ -67,6 +60,21 @@ public class ReferenceDocsLoader {
           "The application will start, but RAG functionality may be limited. " +
           "Error: {}", e.getMessage());
       log.debug("Full exception details: ", e);
+    }
+  }
+
+  private void safeLoad(Resource resource) {
+    try {
+      loadData(vectorStore, resource);
+    } catch (Exception e) {
+      Throwable root = e;
+      while (root.getCause() != null && root.getCause() != root) {
+        root = root.getCause();
+      }
+      log.warn("Skipping reference document '{}' due to error: {} (root cause: {}: {})",
+          resource.getFilename(), e.getMessage(),
+          root.getClass().getName(), root.getMessage());
+      log.warn("Full exception chain for '{}':", resource.getFilename(), e);
     }
   }
 

@@ -37,12 +37,11 @@ databaseChangeLog:
       author: jnolasco
       preConditions:
         - onFail: MARK_RAN
-        - not:
-            - sqlCheck:
-                expectedResult: 0
-                sql: |
-                  SELECT COUNT(*) FROM information_schema.constraint_column_usage
-                  WHERE table_name='SPRING_AI_CHAT_MEMORY' AND constraint_name='SPRING_AI_CHAT_MEMORY_TYPE_CHECK'
+        - sqlCheck:
+            expectedResult: 0
+            sql: |
+              SELECT COUNT(*) FROM information_schema.constraint_column_usage
+              WHERE table_name='SPRING_AI_CHAT_MEMORY' AND constraint_name='SPRING_AI_CHAT_MEMORY_TYPE_CHECK'
       changes:
         - sql:
             sql: |
@@ -73,11 +72,10 @@ databaseChangeLog:
       author: jnolasco
       preConditions:
         - onFail: MARK_RAN
-        - not:
-            - sqlCheck:
-                expectedResult: 0
-                sql: |
-                  SELECT COUNT(*) FROM pg_extension WHERE extname='vector'
+        - sqlCheck:
+            expectedResult: 0
+            sql: |
+              SELECT COUNT(*) FROM pg_extension WHERE extname='vector'
       changes:
         - sql:
             sql: |
@@ -100,7 +98,7 @@ databaseChangeLog:
                 id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
                 content text,
                 metadata json,
-                embedding vector(1536)
+                embedding vector(1024)
               );
 
   - changeSet:

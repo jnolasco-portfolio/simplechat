@@ -11,20 +11,22 @@ spring:
         transcription: disabled
     openai:
       timeout: 350s
-      base-url: ${BASE_URL}  #'http://host.docker.internal:11434/v1'
+      base-url: ${BASE_URL} #'http://host.docker.internal:11434/v1'
       api-key: '${OPENAI_API_KEY}'
       chat:
-        model: ${CHAT_MODEL}  
+        options:
+          model: ${CHAT_MODEL}
         #'granite4:7b-a1b-h'
       embedding:
-        model: ${EMBEDDING_MODEL}
+        options:
+          model: ${EMBEDDING_MODEL}
 
           #mxbai-embed-large
     vectorstore:
       pgvector:
         index-type: HNSW
         distance-type: COSINE_DISTANCE
-        dimensions: 1536
+        dimensions: 1024
         max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
         initialize-schema: false
 
@@ -47,3 +49,4 @@ logging:
   level:
     org.springframework.jdbc.core.JdbcTemplate: TRACE
     org.springframework.jdbc.core.StatementCreatorUtils: TRACE
+    orgg.springframework.ai: TRACE
