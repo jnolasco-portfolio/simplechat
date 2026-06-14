@@ -46,12 +46,6 @@
 			<artifactId>spring-ai-starter-model-openai</artifactId>
 		</dependency>
 
-		<!--
-		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-starter-model-transformers</artifactId>
-		</dependency>
-		-->
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-model-chat-memory-repository-jdbc</artifactId>
@@ -71,13 +65,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
-		<!--
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
 			<optional>true</optional>
-		</dependency>-->
+		</dependency>
+
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
@@ -107,6 +102,22 @@
 		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-opentelemetry</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.opentelemetry.instrumentation</groupId>
+			<artifactId>opentelemetry-logback-appender-1.0</artifactId>
+			<!--
+				Must align with the OTel API line shipped by spring-boot-starter-opentelemetry
+				(4.1.0 → 1.62.0). 2.21.0 pulled api-incubator 1.55.0-alpha, which is missing
+				methods called by opentelemetry-sdk 1.62.0 (SdkConfigProvider NoSuchMethodError
+				on DeclarativeConfigProperties.get). 2.28.1-alpha ships with api-incubator
+				1.62.0-alpha and matches the SDK version exactly.
+			-->
+			<version>2.28.1-alpha</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-docker-compose</artifactId>
 			<scope>runtime</scope>
 			<optional>true</optional>
@@ -130,6 +141,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-opentelemetry-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
