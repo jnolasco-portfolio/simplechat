@@ -23,7 +23,7 @@ import cloud.nolasco.simplechat.tools.datetime.DateTimeTools;
 @Configuration
 public class ChatClientConfig {
 
-  @Value("classPath:/prompts/system-prompt.st")
+  @Value("classpath:/prompts/system-prompt.st")
   private Resource systemPrompt;
 
   @Bean

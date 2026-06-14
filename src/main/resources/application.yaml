@@ -17,8 +17,7 @@ spring:
         model: ${CHAT_MODEL}
         #'granite4:7b-a1b-h'
       embedding:
-        model:
-          ${EMBEDDING_MODEL}
+        model: ${EMBEDDING_MODEL}
 
           #mxbai-embed-large
     vectorstore:
