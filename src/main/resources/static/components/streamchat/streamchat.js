@@ -8,6 +8,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentAbortController = null;
 
+  // ---------------------------------------------------------------------------
+  // Markdown + math rendering configuration
+  //   - marked: turns the streamed text buffer into HTML (lists, bold, code, …)
+  //   - KaTeX:  turns $...$ / $$...$$ into rendered math
+  // ---------------------------------------------------------------------------
+  if (window.marked) {
+    marked.setOptions({
+      gfm: true,        // GitHub-flavoured: tables, task lists, strikethrough
+      breaks: true,     // a single \n becomes <br> (chat-friendly)
+      headerIds: false, // don't auto-generate id="..." on headings
+      mangle: false     // don't obfuscate e-mail addresses
+    });
+  }
+
+  const MATH_RENDER_OPTIONS = {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$', right: '$', display: false },
+      { left: '\\(', right: '\\)', display: false },
+      { left: '\\[', right: '\\]', display: true }
+    ],
+    throwOnError: false
+  };
+
+  function renderBotContent(contentElement) {
+    if (!window.marked) {
+      // marked not loaded yet — fall back to raw text so the user still sees output
+      contentElement.textContent = contentElement.__rawBuffer || '';
+      return;
+    }
+    // 1) markdown -> HTML
+    contentElement.innerHTML = marked.parse(contentElement.__rawBuffer || '');
+    // 2) walk the produced HTML and replace $...$ with KaTeX output
+    if (window.renderMathInElement) {
+      renderMathInElement(contentElement, MATH_RENDER_OPTIONS);
+    }
+  }
+
   // Generate a unique user ID once on page load
   let userId = Math.floor(1000000000 + Math.random() * 9000000000).toString();
 
@@ -131,6 +169,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function processStream(reader, contentElement, signal) {
     const decoder = new TextDecoder('utf-8');
+    contentElement.__rawBuffer = '';
+    let renderScheduled = false;
+
+    const scheduleRender = () => {
+      if (renderScheduled) return;
+      renderScheduled = true;
+      requestAnimationFrame(() => {
+        renderScheduled = false;
+        renderBotContent(contentElement);
+        chatLog.scrollTop = chatLog.scrollHeight;
+      });
+    };
+
     try {
       while (true) {
         if (signal.aborted) {
@@ -138,9 +189,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const { done, value } = await reader.read();
         if (done) break;
-        contentElement.innerHTML += decoder.decode(value, { stream: true });
-        chatLog.scrollTop = chatLog.scrollHeight;
+        // accumulate into the raw text buffer; never write partial HTML during
+        // streaming (avoids mid-tag invalid markup like <h1>...</h1 split across chunks)
+        contentElement.__rawBuffer += decoder.decode(value, { stream: true });
+        scheduleRender();
       }
+      // one final pass so any trailing token is fully rendered
+      scheduleRender();
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Error processing stream:', error);
