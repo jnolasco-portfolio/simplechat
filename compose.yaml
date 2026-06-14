@@ -28,3 +28,9 @@ services:
       DB_PORT: 5432
     ports:
       - "5432:5432"
+  grafana-lgtm:
+    image: 'grafana/otel-lgtm:latest'
+    ports:
+      - '3000:3000'
+      - '4317'
+      - '4318'
