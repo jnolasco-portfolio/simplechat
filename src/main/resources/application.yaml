@@ -46,11 +46,18 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/chat_memory_db
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
+  # Spring Boot Docker Compose dev-time support: auto-detects compose.yaml,
+  # starts it on app start, stops it on shutdown. JdbcConnectionDetails is
+  # auto-wired from the running Postgres container (no manual datasource in dev).
+  # In tests compose is skipped by default (skip.in-tests defaults to true).
+  docker:
+    compose:
+      # --wait blocks until Postgres is healthy; --remove-orphans cleans up
+      # containers from previous runs whose services are no longer in the file.
+      start:
+        arguments:
+          - --wait
+          - --remove-orphans
 
 # Logging Configuration
 logging:

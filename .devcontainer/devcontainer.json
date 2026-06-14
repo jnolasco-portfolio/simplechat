@@ -5,7 +5,7 @@
   "workspaceFolder": "/workspaces",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
-      "version": "25",
+      "version": "21",
       "jdkDistro": "amzn",
       "installGradle": true,
       "installMaven": true
@@ -18,7 +18,15 @@
       "installZsh": true,
       "installOhMyZsh": true,
       "ohMyZshTheme": "agnoster",
-      "ohMyZshPlugins": ["git", "docker", "docker-compose", "zsh-autosuggestions", "zsh-syntax-highlighting", "mvn", "gradle"]
+      "ohMyZshPlugins": [
+        "git",
+        "docker",
+        "docker-compose",
+        "zsh-autosuggestions",
+        "zsh-syntax-highlighting",
+        "mvn",
+        "gradle"
+      ]
     }
   },
   "customizations": {

@@ -28,7 +28,7 @@
 		<url />
 	</scm>
 	<properties>
-		<java.version>25</java.version>
+		<java.version>21</java.version>
 		<spring-ai.version>2.0.0-RC2</spring-ai.version>
 	</properties>
 	<dependencies>
@@ -101,12 +101,16 @@
 			<artifactId>spring-ai-markdown-document-reader</artifactId>
 		</dependency>
 		<!--
+		Auto-start services declared in compose.yaml when running the JAR locally
+		(dev-time only). `optional=true` is the load-bearing flag: it tells
+		spring-boot-maven-plugin to strip this module from the production fat JAR.
+		-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-docker-compose</artifactId>
 			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
-		-->
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

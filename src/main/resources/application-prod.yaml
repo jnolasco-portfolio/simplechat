@@ -1,0 +1,27 @@
+# Production profile configuration.
+#
+# Activate with: SPRING_PROFILES_ACTIVE=prod
+#
+# Profile overview:
+#   default (no profile)  -> dev path. spring-boot-docker-compose auto-wires
+#                            JdbcConnectionDetails from the Postgres container
+#                            started by `docker compose up` (see compose.yaml).
+#   test                  -> application-test.yaml supplies an H2 datasource.
+#                            Compose is skipped via spring.docker.compose.skip.in-tests.
+#   prod                  -> this file. The Compose module is excluded from the
+#                            production fat JAR, so JdbcConnectionDetails is
+#                            not available; the DataSource must be wired here.
+#
+# Required environment variables (failed at startup if missing):
+#   DB_HOST, DB_PORT, POSTGRES_DB, DB_USERNAME, DB_PASSWORD
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:?DB_HOST must be set}:${DB_PORT:5432}/${POSTGRES_DB:?POSTGRES_DB must be set}
+    username: ${DB_USERNAME:?DB_USERNAME must be set}
+    password: ${DB_PASSWORD:?DB_PASSWORD must be set}
+    driver-class-name: org.postgresql.Driver
+
+logging:
+  level:
+    root: INFO

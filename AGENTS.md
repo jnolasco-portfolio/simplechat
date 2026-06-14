@@ -14,20 +14,36 @@
 # Build
 ./mvnw clean package
 
-# Run tests (uses H2 in-memory DB via application-test.yaml profile)
+# Run tests (uses H2 in-memory DB via application-test.yaml profile;
+# spring-boot-docker-compose is disabled in tests via spring.docker.compose.skip.in-tests)
 ./mvnw clean test
 
-# Run with Docker Compose (PostgreSQL + app)
-docker compose up -d
-
-# Run locally (set env vars first)
+# Run locally — Spring Boot's Docker Compose support auto-starts Postgres
+# from compose.yaml. No manual `docker compose up` needed. AI env vars are
+# still required (the AI provider is not a Docker service in dev).
 export BASE_URL=http://host.docker.internal:11434/v1
 export OPENAI_API_KEY=sk-...
 export CHAT_MODEL=granite4:7b-a1b-h
 export EMBEDDING_MODEL=mxbai-embed-large
-export DB_HOST=localhost DB_PORT=5432 DB_USERNAME=postgres DB_PASSWORD=postgres
 ./mvnw spring-boot:run
+
+# Manual DB lifecycle (if you need to control Postgres independently of the app)
+docker compose up -d postgres
+docker compose down
 ```
+
+## Profiles
+
+| Profile | Loaded when | DataSource | Compose module |
+| --- | --- | --- | --- |
+| *(default / dev)* | no `SPRING_PROFILES_ACTIVE` set | Auto-wired from `compose.yaml` container | Active (starts Postgres) |
+| `test` | `@ActiveProfiles("test")` on the test class | H2 in-memory (from `application-test.yaml`) | Skipped (`skip.in-tests: true`) |
+| `prod` | `SPRING_PROFILES_ACTIVE=prod` | Explicit JDBC URL from `application-prod.yaml` | Excluded from the fat JAR by `excludeDockerCompose=true` |
+
+In production you **must** set `SPRING_PROFILES_ACTIVE=prod` and provide
+`DB_HOST`, `POSTGRES_DB`, `DB_USERNAME`, and `DB_PASSWORD`. The prod profile
+uses Spring's `${VAR:?message}` placeholder syntax, so the app fails fast at
+startup with a clear error if any required variable is missing.
 
 ## Key Components
 
