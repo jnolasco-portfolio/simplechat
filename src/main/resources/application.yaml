@@ -36,9 +36,9 @@ spring:
           jdbc:
             initialize-schema: never
       observations:
+        log-prompt: true
         log-completion: true
         include-error-logging: true
-        log-prompt: true
     tools:
       throw-exception-on-error: true
       observations:
