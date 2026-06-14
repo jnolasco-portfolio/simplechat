@@ -28,9 +28,31 @@ export EMBEDDING_MODEL=mxbai-embed-large
 ./mvnw spring-boot:run
 
 # Manual DB lifecycle (if you need to control Postgres independently of the app)
-docker compose up -d postgres
+docker compose up -d chat_memory_db grafana-lgtm
 docker compose down
 ```
+
+## Docker Compose Layout
+
+The dev stack is intentionally split across **two** compose files so that
+VS Code's dev container and Spring Boot's `spring.docker.compose` support
+each manage their own services and never collide on the dev container:
+
+| File | Consumer | Services |
+| --- | --- | --- |
+| `compose.yaml` (project root) | Spring Boot `spring.docker.compose` auto-detection; also `docker compose up` for non-dev-container workflows | `chat_memory_db`, `grafana-lgtm` |
+| `compose.devcontainer.yaml` (project root) | `.devcontainer/devcontainer.json` (via `dockerComposeFile`) | `service` (the dev container itself) |
+
+Both files live in the same directory, so docker compose assigns them the
+same project name and default network — the dev container can still reach
+the DB by service name (`chat_memory_db:5432`). Inside the dev container,
+`./mvnw spring-boot:run` (or the Spring Boot Dashboard) will start
+`chat_memory_db` / `grafana-lgtm` via the root `compose.yaml` without
+touching the dev container.
+
+> The dev container's compose file deliberately omits
+> `depends_on: chat_memory_db` because that service lives in a different
+> file; the DB is started later by Spring Boot at app boot.
 
 ## Profiles
 

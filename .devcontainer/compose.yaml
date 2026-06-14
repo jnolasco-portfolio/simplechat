@@ -1,0 +1,62 @@
+# Compose file consumed ONLY by .devcontainer/devcontainer.json.
+#
+# It intentionally defines just the dev-container `service` so that Spring
+# Boot's `spring.docker.compose` auto-detection (which only sees
+# `compose.yaml` in the project root) does not try to (re)start the dev
+# container when the app boots — that used to collide with the running
+# dev container.
+#
+# The dev dependencies (`chat_memory_db`, `grafana-lgtm`) live in the root
+# `compose.yaml` and are started by Spring Boot at app boot. Because both
+# files live in the same docker-compose *project* (see `name:` below) they
+# share the same default network, so the dev container can reach the DB
+# by service name (`chat_memory_db:5432`).
+#
+# Why `name: simplechat`?
+# -----------------------
+# Docker Compose derives the project name from the directory that
+# contains the compose file. Because this file lives in `.devcontainer/`
+# the default project would be `.devcontainer` (or `simplechat_devcontainer`),
+# which would put the dev container on a different network than the DB
+# started from the root `compose.yaml`. Pinning the project name to
+# `simplechat` (the conventional clone folder name) keeps them on the
+# same network. If you clone the repo into a folder with a different
+# name, either rename it to `simplechat` or set the `COMPOSE_PROJECT_NAME`
+# environment variable to the same value Spring Boot sees for the root
+# `compose.yaml`.
+#
+# Why `volumes: - ../:/workspaces/simplechat:cached`?
+# ----------------------------------------------------
+# Compose resolves relative volume paths against the directory that
+# contains the compose file. With the file in `.devcontainer/`, `.`
+# would resolve to `.devcontainer/` itself; `..` climbs back up to the
+# project root so the whole project is mounted at
+# `/workspaces/simplechat` (matching `workspaceFolder` in
+# devcontainer.json).
+#
+# Note: there is no `depends_on: chat_memory_db` here on purpose — that
+# service is not defined in this file, so referencing it would error out.
+# The DB is started later, when Spring Boot boots the app.
+
+name: simplechat
+
+# Named volume for the Maven local repository. Persists across dev
+# container rebuilds and is much faster than bind-mounting ~/.m2 from
+# the host (especially on macOS / Windows). The container's user is
+# root (the default in mcr.microsoft.com/devcontainers/base:ubuntu), so
+# the cache lives at /root/.m2.
+volumes:
+  m2-cache:
+
+services:
+
+  service:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    environment:
+      TZ: "America/Mexico_City"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ../:/workspaces/simplechat:cached
+      - m2-cache:/root/.m2
+    command: sleep infinity

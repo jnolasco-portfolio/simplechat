@@ -1,8 +1,8 @@
 {
   "name": "simple-chat",
-  "dockerComposeFile": "../compose.yaml",
+  "dockerComposeFile": "compose.yaml",
   "service": "service",
-  "workspaceFolder": "/workspaces",
+  "workspaceFolder": "/workspaces/simplechat",
   "features": {
     "ghcr.io/devcontainers/features/java:1": {
       "version": "21",

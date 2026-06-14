@@ -1,16 +1,18 @@
-services:
+# Dev dependencies for the Spring Boot app (Postgres + observability).
+#
+# This file is consumed by Spring Boot's `spring.docker.compose`
+# auto-detection (which only looks at `compose.yaml` / `compose.yml` /
+# `docker-compose.yaml` / `docker-compose.yml` in the project root) and
+# can also be started manually with `docker compose up` for non-dev-
+# container workflows.
+#
+# It intentionally does NOT define the dev container `service` — that
+# lives in `compose.devcontainer.yaml`, referenced by
+# `.devcontainer/devcontainer.json`. Keeping the two files separate
+# prevents the dev container and Spring Boot from fighting over the
+# same `service` container.
 
-  service:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu
-    environment:
-      TZ: "America/Mexico_City"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - .:/workspaces:cached
-    depends_on:
-      - chat_memory_db
-    command: sleep infinity
+services:
 
   chat_memory_db:
     image: pgvector/pgvector:pg16
