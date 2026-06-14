@@ -113,3 +113,19 @@ databaseChangeLog:
         - sql:
             sql: |
               CREATE INDEX ON vector_store USING HNSW (embedding vector_cosine_ops);
+
+  - changeSet:
+      id: '1.6'
+      author: jnolasco
+      comment: 'Add sequence_id column required by Spring AI 2.0 JdbcChatMemoryRepository'
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - columnExists:
+                tableName: SPRING_AI_CHAT_MEMORY
+                columnName: sequence_id
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE SPRING_AI_CHAT_MEMORY
+              ADD COLUMN sequence_id BIGINT NOT NULL DEFAULT 0;

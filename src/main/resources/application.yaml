@@ -14,12 +14,11 @@ spring:
       base-url: ${BASE_URL} #'http://host.docker.internal:11434/v1'
       api-key: '${OPENAI_API_KEY}'
       chat:
-        options:
-          model: ${CHAT_MODEL}
+        model: ${CHAT_MODEL}
         #'granite4:7b-a1b-h'
       embedding:
-        options:
-          model: ${EMBEDDING_MODEL}
+        model:
+          ${EMBEDDING_MODEL}
 
           #mxbai-embed-large
     vectorstore:
