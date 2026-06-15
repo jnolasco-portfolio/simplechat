@@ -1,0 +1,60 @@
+# OpenTelemetry Collector configuration for dev.
+# Receives OTLP from the Spring Boot app and fans out to:
+#   - grafana-lgtm (LGTM stack: traces, metrics, logs)
+#   - langfuse     (LLM traces only — langfuse does not ingest metrics or logs)
+#
+# Auth for the langfuse exporter is read from the `LANGFUSE_OTEL_AUTH` env
+# var and passed through as the `authorization` header. With the env var
+# empty the langfuse exporter will return 401/403 (collector logs only;
+# the lgtm exporter keeps working).
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  # Default batch is fine for dev; tune `timeout` and `send_batch_size` if
+  # traces arrive in bursts.
+  batch:
+    timeout: 5s
+
+exporters:
+  otlphttp/lgtm:
+    # The grafana/otel-lgtm image exposes OTLP HTTP on 4318; the exporter
+    # auto-appends /v1/traces, /v1/metrics, /v1/logs.
+    endpoint: http://grafana-lgtm:4318
+    encoding: proto
+    tls:
+      insecure: true
+
+  otlphttp/langfuse:
+    # Langfuse's OTel ingestion endpoint. Only traces are sent here —
+    # metrics and logs pipelines below omit this exporter.
+    traces_endpoint: http://langfuse-web:3000/api/public/otel/v1/traces
+    headers:
+      authorization: ${env:LANGFUSE_OTEL_AUTH}
+    encoding: proto
+    tls:
+      insecure: true
+
+service:
+  telemetry:
+    logs:
+      level: info
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/lgtm, otlphttp/langfuse]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/lgtm]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/lgtm]

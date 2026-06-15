@@ -1,0 +1,44 @@
+# OpenTelemetry Collector — the fan-out hub for dev observability.
+#
+# Receives OTLP from the Spring Boot app on 4317 (gRPC) and 4318 (HTTP),
+# then forwards:
+#   - traces   -> BOTH grafana-lgtm:4318 AND langfuse-web:3000/api/public/otel/v1/traces
+#   - metrics  -> grafana-lgtm:4318
+#   - logs     -> grafana-lgtm:4318
+#
+# Started by the root [`compose.yaml`](../../compose.yaml) via `include:`.
+# The collector is the only thing bound to host ports 4317/4318 now; the
+# upstream LGTM container exposes 4318 on the internal Docker network only.
+#
+# Langfuse auth is injected as a single env var. The Spring app (and the
+# LGTM exporter) never see the secret — the collector reads it once and
+# sets the `authorization` header on the langfuse exporter. To enable
+# langfuse export, set:
+#   LANGFUSE_OTEL_AUTH="Basic $(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" \
+#                                            "$LANGFUSE_SECRET_KEY" | base64 -w0)"
+# in your shell (or in `.env`) and restart this container. With the env
+# var empty, the langfuse exporter still attempts to send (the collector
+# logs the 401/403); the lgtm exporter is unaffected.
+
+services:
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.121.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      LANGFUSE_OTEL_AUTH: ${LANGFUSE_OTEL_AUTH:-}
+    ports:
+      - "4317:4317"  # OTLP gRPC — used by the Spring Boot OTel starter
+      - "4318:4318"  # OTLP HTTP  — also used by the OTel logback appender
+    networks:
+      - simplechat-net
+
+networks:
+  simplechat-net:
+    # External because the root [`compose.yaml`](../../compose.yaml) owns
+    # the network when this file is `include:`d. In standalone usage, run
+    # `docker network create simplechat-net` first.
+    external: true
+    name: simplechat-net
