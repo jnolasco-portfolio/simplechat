@@ -99,10 +99,20 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+    # HOSTNAME=0.0.0.0 forces Next.js to listen on every interface.
+    # Without this, Next.js binds only to the IP the default HOSTNAME
+    # (the container id) resolves to on the *primary* network. Because
+    # langfuse-web is on both `langfuse-internal` and `simplechat-net`,
+    # Docker may pick the langfuse-internal IP for the docker-proxy
+    # port mapping, leaving host:3000 unreachable. Binding to
+    # 0.0.0.0:3000 fixes both the host port mapping and the
+    # OTel-collector → langfuse-web:3000 export.
+    hostname: 0.0.0.0
     ports:
       - "3000:3000"
     environment:
       <<: *langfuse-env
+      HOSTNAME: 0.0.0.0
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-mysecret}
       LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-}
       LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-}
