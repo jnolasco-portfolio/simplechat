@@ -1,0 +1,29 @@
+# Grafana OTel LGTM stack for dev.
+#
+# Started by the root [`compose.yaml`](../../compose.yaml) via `include:` on
+# `./mvnw spring-boot:run`. Brings up the LGTM containers on the shared
+# `simplechat-net` network so the OTel collector in
+# `infra/observability/otel-collector/` can forward traces, metrics, and
+# logs to it.
+#
+# Port allocation:
+#   - 3002 -> 3000   (Grafana UI; 3000 is reserved for langfuse-web)
+#   - 4317/4318 on the internal network only — the OTel collector owns the
+#     host ports 4317/4318 now and forwards into grafana-lgtm:4318.
+
+services:
+
+  grafana-lgtm:
+    image: grafana/otel-lgtm:latest
+    ports:
+      - "3002:3000"
+    networks:
+      - simplechat-net
+
+networks:
+  simplechat-net:
+    # External because the root [`compose.yaml`](../../compose.yaml) owns
+    # the network when this file is `include:`d. In standalone usage, run
+    # `docker network create simplechat-net` first.
+    external: true
+    name: simplechat-net

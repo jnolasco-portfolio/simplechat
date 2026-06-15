@@ -4,7 +4,7 @@ description: "Run simplechat locally against an OpenAI-compatible AI endpoint. S
 
 # Run simplechat locally
 
-Boots the Spring Boot app on port 8082 against an OpenAI-compatible AI endpoint (Ollama, LM Studio, OpenAI, vLLM, etc.). Spring Boot's `spring.docker.compose` auto-starts the `chat_memory_db` (pgvector) and `grafana-lgtm` containers from the root [`compose.yaml`](compose.yaml) on app start.
+Boots the Spring Boot app on port 8082 against an OpenAI-compatible AI endpoint (Ollama, LM Studio, OpenAI, vLLM, etc.). Spring Boot's `spring.docker.compose` auto-starts the full dev graph — `chat_memory_db` (pgvector), `grafana-lgtm` (UI on `http://localhost:3002`), and the `otel-collector` fan-out — from the root [`compose.yaml`](compose.yaml) and its `include:`d per-tool files under [`infra/`](infra/) on app start.
 
 ## Required environment variables
 
@@ -18,13 +18,13 @@ Boots the Spring Boot app on port 8082 against an OpenAI-compatible AI endpoint 
 ## Steps
 
 1. **Confirm the four env vars are set.** If any are missing, ask the user for the values. If running inside the dev container, all four are usually already exported in `.env` (loaded by `spring.config.import: optional:file:./.env[.properties]`).
-2. **Confirm `chat_memory_db` is reachable.** If `docker ps` shows it running, fine. If not, start it manually:
+2. **Confirm `chat_memory_db` is reachable.** If `docker ps` shows it running, fine. If not, start it manually. The root `compose.yaml` `include:`s lgtm + the otel-collector, so any `docker compose` command brings up the whole graph:
 
    ```bash
-   docker compose up -d chat_memory_db grafana-lgtm
+   docker compose up -d chat_memory_db
    ```
 
-   Spring Boot's own `spring.docker.compose` will also start them on app start, so this step is optional.
+   Spring Boot's own `spring.docker.compose` will also start the full graph on app start, so this step is optional. (The OTel collector is a transparent fan-out — the app's OTel URLs still point at `localhost:4318`; the collector forwards to grafana-lgtm, and to langfuse if you start the langfuse stack with `LANGFUSE_OTEL_AUTH` set.)
 3. **Build once if needed** (skipped on warm runs):
 
    ```bash
@@ -54,6 +54,8 @@ Boots the Spring Boot app on port 8082 against an OpenAI-compatible AI endpoint 
 | `expected 1024 dimensions, not N` in startup logs | `EMBEDDING_MODEL` dimension mismatch with the pgvector column | Switch model to a 1024-dim one, or apply a new Liquibase changeset to resize the column |
 | `pgvector extension not found` | `chat_memory_db` not running or wrong image | Confirm `docker ps | grep pgvector` |
 | Container port 5432 already in use | A local Postgres is hogging the port | `docker compose down chat_memory_db`, or stop the local Postgres |
+| Grafana UI not at 3000 | Port 3000 is reserved for langfuse-web; grafana-lgtm is on **3002** | Open `http://localhost:3002` instead |
+| 401/403 from langfuse-web in collector logs | `LANGFUSE_OTEL_AUTH` is unset or stale | Export a fresh `Basic <base64(public_key:secret_key)>` and `docker compose restart otel-collector` |
 
 ## After running
 

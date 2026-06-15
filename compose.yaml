@@ -1,4 +1,4 @@
-# Dev dependencies for the Spring Boot app (Postgres + observability).
+# Dev dependencies for the Spring Boot app.
 #
 # This file is consumed by Spring Boot's `spring.docker.compose`
 # auto-detection (which only looks at `compose.yaml` / `compose.yml` /
@@ -6,11 +6,27 @@
 # can also be started manually with `docker compose up` for non-dev-
 # container workflows.
 #
-# It intentionally does NOT define the dev container `service` — that
-# lives in `compose.devcontainer.yaml`, referenced by
-# `.devcontainer/devcontainer.json`. Keeping the two files separate
-# prevents the dev container and Spring Boot from fighting over the
-# same `service` container.
+# It is the ORCHESTRATOR of the dev stack: it owns the shared
+# `simplechat-net` Docker network, keeps the app's own DB inline, and
+# `include:`s the per-tool compose files under `infra/`. The root file
+# is intentionally small (Spring Boot only auto-detects the root) while
+# each tool evolves independently under its own folder — the same
+# layout maps 1:1 onto future k8s manifests.
+#
+# Per-tool stacks:
+#   infra/lgtm/                          - Grafana OTel LGTM (started here)
+#   infra/observability/otel-collector/  - OTel fan-out (started here)
+#   infra/langfuse/                      - Langfuse LLM tracing (manual, opt-in)
+#
+# Spring Boot's `spring.docker.compose` integration will pull up the
+# full auto-included graph (lgtm + collector) on `./mvnw spring-boot:run`.
+# Langfuse must be started separately; see `infra/langfuse/compose.yaml`.
+
+name: simplechat
+
+networks:
+  simplechat-net:
+    name: simplechat-net
 
 services:
 
@@ -30,9 +46,9 @@ services:
       DB_PORT: 5432
     ports:
       - "5432:5432"
-  grafana-lgtm:
-    image: 'grafana/otel-lgtm:latest'
-    ports:
-      - '3000:3000'
-      - '4317'
-      - '4318'
+    networks:
+      - simplechat-net
+
+include:
+  - path: ./infra/lgtm/compose.yaml
+  - path: ./infra/observability/otel-collector/compose.yaml

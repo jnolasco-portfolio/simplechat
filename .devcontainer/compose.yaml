@@ -6,11 +6,17 @@
 # container when the app boots — that used to collide with the running
 # dev container.
 #
-# The dev dependencies (`chat_memory_db`, `grafana-lgtm`) live in the root
-# `compose.yaml` and are started by Spring Boot at app boot. Because both
-# files live in the same docker-compose *project* (see `name:` below) they
-# share the same default network, so the dev container can reach the DB
-# by service name (`chat_memory_db:5432`).
+# The dev dependencies live in the root `compose.yaml` and the per-tool
+# `infra/` tree (see [Docker Compose Layout](../AGENTS.md#docker-compose-layout)):
+#   - `chat_memory_db`              — in the root
+#   - `grafana-lgtm`                — in infra/lgtm/compose.yaml (include:d)
+#   - `otel-collector`              — in infra/observability/otel-collector/compose.yaml (include:d)
+#   - `langfuse` (opt-in)           — in infra/langfuse/compose.yaml (standalone)
+# All are started by Spring Boot at app boot. Because this file and the
+# root compose share the same docker-compose *project* (see `name:` below)
+# the dev container shares the root's `simplechat-net` network, so it can
+# reach the DB by service name (`chat_memory_db:5432`) and the collector
+# by service name (`otel-collector:4317/4318`).
 #
 # Why `name: simplechat`?
 # -----------------------

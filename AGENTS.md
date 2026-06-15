@@ -16,8 +16,9 @@
 # Tests (H2 in-memory via `test` profile; no Docker needed)
 ./mvnw test
 
-# Dev run — Spring Boot's Docker Compose auto-starts `chat_memory_db` + `grafana-lgtm`
-# from compose.yaml. The AI provider is NOT a Docker service in dev.
+# Dev run — Spring Boot's Docker Compose auto-starts the full dev graph
+# (chat_memory_db + grafana-lgtm + otel-collector) from compose.yaml via
+# the `include:` mechanism. The AI provider is NOT a Docker service in dev.
 export BASE_URL=http://host.docker.internal:11434/v1
 export OPENAI_API_KEY=sk-...
 export CHAT_MODEL=granite4:7b-a1b-h
@@ -25,32 +26,81 @@ export EMBEDDING_MODEL=mxbai-embed-large
 ./mvnw spring-boot:run
 ```
 
-Manual DB lifecycle (if you need to control Postgres independently of the app):
+Manual lifecycle (the root `compose.yaml` `include:`s lgtm + collector, so
+any `docker compose` command brings up the whole graph; pass service names
+to start a subset):
 
 ```bash
-docker compose up -d chat_memory_db grafana-lgtm
-docker compose down
+docker compose up -d chat_memory_db                     # db only
+docker compose up -d chat_memory_db grafana-lgtm otel-collector  # all dev deps
+docker compose down                                     # stops everything
 ```
 
-## Docker Compose Layout (two files on purpose)
+Langfuse is **opt-in** (it pulls in ClickHouse + MinIO + Redis — heavy
+for a hot dev loop). See the [Docker Compose Layout](#docker-compose-layout)
+section.
 
-The dev stack is split across **two** compose files so the dev container and Spring
-Boot's `spring.docker.compose` each manage their own services and never collide:
+## Docker Compose Layout
 
-| File | Consumer | Services |
-| --- | --- | --- |
-| [`compose.yaml`](compose.yaml) (project root) | Spring Boot `spring.docker.compose` auto-detection; manual `docker compose up` for non-dev-container workflows | `chat_memory_db` (pgvector), `grafana-lgtm` |
-| [`.devcontainer/compose.yaml`](.devcontainer/compose.yaml) | [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) | `service` (the dev container itself) |
+The dev stack is split across a **root** `compose.yaml` and a per-tool
+`infra/` tree so the dev container, Spring Boot's `spring.docker.compose`
+integration, and future k8s manifests all consume the same folder
+structure. The root file is intentionally small (Spring Boot only
+auto-detects the root) and `include:`s the per-tool compose files.
 
-Both compose files share a project name (`name: simplechat` in the devcontainer
-file) and the default network, so the dev container can reach the DB by service
-name (`chat_memory_db:5432`). If you clone the repo into a folder with a
-different name, set `COMPOSE_PROJECT_NAME=simplechat` so they stay on the same
-network — or rename the folder to `simplechat`.
+| File / folder | Consumer | Services | Started when |
+| --- | --- | --- | --- |
+| [`compose.yaml`](compose.yaml) (project root) | Spring Boot `spring.docker.compose` auto-detection; manual `docker compose up` for non-dev-container workflows | `chat_memory_db` (pgvector) | `./mvnw spring-boot:run` |
+| [`.devcontainer/compose.yaml`](.devcontainer/compose.yaml) | [`.devcontainer/devcontainer.json`](.devcontainer/devcontainer.json) | `service` (the dev container itself) | Dev container start |
+| [`infra/lgtm/compose.yaml`](infra/lgtm/compose.yaml) | `include:`d by the root | `grafana-lgtm` (UI on host port 3002) | `./mvnw spring-boot:run` (via the root) |
+| [`infra/observability/otel-collector/compose.yaml`](infra/observability/otel-collector/compose.yaml) | `include:`d by the root | `otel-collector` (OTLP gRPC:4317, HTTP:4318) | `./mvnw spring-boot:run` (via the root) |
+| [`infra/langfuse/compose.yaml`](infra/langfuse/compose.yaml) | Standalone (opt-in) | `langfuse-web` (UI on 3000), `langfuse-worker`, plus Postgres/ClickHouse/Redis/MinIO | Manual — see below |
 
-> The dev container's compose file intentionally omits `depends_on: chat_memory_db`
-> because that service is defined in a different file. The DB is started later by
-> Spring Boot at app boot.
+### Observability data path
+
+The OTel collector in `infra/observability/otel-collector/` is the
+fan-out hub. The Spring app's existing OTel endpoints
+(`http://localhost:4317` / `http://localhost:4318` for traces, metrics,
+and logs — see [`application.yaml`](src/main/resources/application.yaml))
+hit the collector, which then forwards:
+
+- **traces**  → BOTH `grafana-lgtm:4318` AND `langfuse-web:3000/api/public/otel/v1/traces` (with `Authorization: Basic <…>` from the `LANGFUSE_OTEL_AUTH` env var)
+- **metrics** → `grafana-lgtm:4318` only
+- **logs**    → `grafana-lgtm:4318` only (Langfuse does not ingest metrics or logs)
+
+The app's OTel URLs didn't change — the collector transparently replaced
+the direct LGTM connection with a fan-out. To enable the langfuse
+exporter, start the langfuse stack and export `LANGFUSE_OTEL_AUTH="Basic
+$(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" "$LANGFUSE_SECRET_KEY" | base64 -w0)"`,
+then `docker compose restart otel-collector`.
+
+### Langfuse (opt-in)
+
+```bash
+cp infra/langfuse/.env.example infra/langfuse/.env    # fill in the CHANGEME secrets
+docker compose -f infra/langfuse/compose.yaml \
+               --env-file infra/langfuse/.env up -d
+# wait for "Ready" in `docker logs -f langfuse-web-1` (~2-3 min on a warm host)
+# open http://localhost:3000, create a project, copy the public + secret keys
+# export LANGFUSE_OTEL_AUTH="Basic $(printf '%s:%s' "$LANGFUSE_PUBLIC_KEY" \
+#                                            "$LANGFUSE_SECRET_KEY" | base64 -w0)"
+# docker compose restart otel-collector
+```
+
+### Network
+
+All included services join the shared `simplechat-net` user-defined
+network declared in the root compose file. The dev-container compose
+file uses `name: simplechat` so the dev container and the root compose
+share the same docker-compose *project* and therefore the same network
+namespace. If you clone the repo into a folder with a different name,
+set `COMPOSE_PROJECT_NAME=simplechat` for both compose files, or rename
+the folder.
+
+> The dev container's compose file intentionally omits
+> `depends_on: chat_memory_db` because that service is defined in a
+> different file. The DB is started later, when Spring Boot boots the
+> app.
 
 ## Profiles
 
@@ -92,7 +142,11 @@ Env vars (see [`application.yaml`](src/main/resources/application.yaml)):
 | `DB_PASSWORD` | `postgres` | Database password |
 
 ## RAG (Retrieval Augmented Generation)
-
+) |
+| **Grafana UI port (3002, not 3000)** | `grafana-lgtm` moved to host port 3002 in `infra/lgtm/compose.yaml` — host port 3000 is reserved for `langfuse-web` if you ever start the langfuse stack |
+| **OTel collector owns 4317/4318** | The Spring app's OTel URLs in [`application.yaml`](src/main/resources/application.yaml) point at `http://localhost:4318`; that now hits the **otel-collector** (fan-out), not LGTM directly. If you delete the collector, signals will silently fail |
+| **Langfuse port collisions** | `langfuse-web` wants host 3000, the langfuse stack's own postgres wants 5432. Both are remapped (3000/5432 host, langfuse's pg → 127.0.0.1:5433) to coexist with `chat_memory_db` and `grafana-lgtm` |
+| **`infra/*/compose.yaml` standalone mode** | The lgtm and otel-collector files declare `simplechat-net: external: true` so they can be validated/started standalone. For standalone `up -d` you must `docker network create simplechat-net` first
 - Source documents: [`src/main/resources/context/`](src/main/resources/context/) (markdown files)
 - `ReferenceDocsLoader` reads them at startup, chunks with `TokenTextSplitter` (chunk size 128), and writes to the `vector_store` table in PostgreSQL.
 - At chat time, [`ChatController`](src/main/java/cloud/nolasco/simplechat/ChatController.java) injects `QuestionAnswerAdvisor` over the auto-configured `PgVectorStore`.
