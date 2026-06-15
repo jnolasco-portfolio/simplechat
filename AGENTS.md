@@ -87,6 +87,16 @@ docker compose -f infra/langfuse/compose.yaml \
 # docker compose restart otel-collector
 ```
 
+> **`hostname: 0.0.0.0` on `langfuse-web` is intentional.** The
+> service is on two networks (`langfuse-internal` and `simplechat-net`)
+> and Next.js reads `HOSTNAME` (defaulting to the container id) to
+> pick the bind interface. With two networks, Docker may route the
+> host:3000 port mapping to the IP on the network that's "primary"
+> (langfuse-internal) while Next.js binds to the IP on the other
+> (simplechat-net), breaking both the host UI and the otel-collector
+> export. Pinning `hostname: 0.0.0.0` (and `HOSTNAME=0.0.0.0`) makes
+> Next.js listen on all interfaces. Keep it.
+
 ### Network
 
 All included services join the shared `simplechat-net` user-defined
