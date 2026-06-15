@@ -32,6 +32,19 @@ services:
     ports:
       - "4317:4317"  # OTLP gRPC — used by the Spring Boot OTel starter
       - "4318:4318"  # OTLP HTTP  — also used by the OTel logback appender
+    labels:
+      # Opt out of Spring Boot 4.1.0's new OpenTelemetry Docker
+      # service-connection factories (metrics, tracing, logging). The
+      # otel-collector has the right host port mappings so the factories
+      # would *succeed* on this container — but the connection details
+      # they produce use the docker-network service name (e.g.
+      # `otel-collector:4318`) as the host, which would override our
+      # explicit `localhost:4318` URL in `application.yaml` and break the
+      # app when run via `./mvnw spring-boot:run` from the host.
+      # Ignoring the container here keeps the OTel exporters pointed at
+      # the fan-out hub via our explicit properties. See Spring Boot
+      # 4.1.0 reference, "Docker Compose > Skipping Specific Containers".
+      org.springframework.boot.ignore: "true"
     networks:
       - simplechat-net
 
