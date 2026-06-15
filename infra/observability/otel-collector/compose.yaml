@@ -37,8 +37,13 @@ services:
 
 networks:
   simplechat-net:
-    # External because the root [`compose.yaml`](../../compose.yaml) owns
-    # the network when this file is `include:`d. In standalone usage, run
-    # `docker network create simplechat-net` first.
-    external: true
+    # Pinned name so this file works in both modes:
+    #   - included from the root `compose.yaml` — the root creates the
+    #     network first, the collector just joins it via the pinned name.
+    #   - standalone (`docker compose -f infra/observability/otel-collector/compose.yaml up`)
+    #     — Compose creates a `simplechat-net` network on the fly.
+    # No `external: true` here on purpose: with `external: true` the
+    # merge with the root flips the network to external and Spring Boot's
+    # `spring.docker.compose` fails with
+    # "network simplechat-net declared as external, but could not be found".
     name: simplechat-net
