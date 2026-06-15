@@ -15,6 +15,18 @@ services:
 
   grafana-lgtm:
     image: grafana/otel-lgtm:latest
+    labels:
+      # Opt out of Spring Boot 4.1.0's new OpenTelemetry Docker
+      # service-connection factories (metrics, tracing, logging). They
+      # match the `grafana/otel-lgtm` image by name and call
+      # `ports.get(4318)` on it, which fails with
+      # "No host port mapping found for container port 4318" because
+      # this image's only host-mapped port is 3002:3000 (Grafana UI).
+      # See Spring Boot 4.1.0 reference, "Docker Compose > Skipping
+      # Specific Containers". We want to keep using our explicit
+      # `management.otlp.*.export.url` properties in `application.yaml`
+      # which point at the otel-collector fan-out hub, not at this image.
+      org.springframework.boot.ignore: "true"
     ports:
       - "3002:3000"
     networks:
