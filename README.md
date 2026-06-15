@@ -424,7 +424,7 @@ The OTel URLs in `application.yaml` are the same as in dev — point them at any
 | Tests fail with `Schema-validation: missing column [vector]` | H2 doesn't know about `pgvector` — that's expected. | The test profile disables Liquibase and mocks the vector store. The startup `H2 ... "VECTOR" not found` warning is harmless. |
 | Spring app can't reach the LLM at `http://host.docker.internal:...` | You're on Linux without the `host.docker.internal` DNS shim, or your LLM isn't running. | Either install the shim, change `BASE_URL` to the host's LAN IP, or run the LLM in Docker. |
 | `docker compose: command not found` | Compose v1 (`docker-compose`) is installed but not v2. | Install Compose v2 (`docker compose`, with a space) — required for `include:`. |
-| Standalone `docker compose -f infra/lgtm/compose.yaml config` fails | The `simplechat-net` network doesn't exist yet. | `docker network create simplechat-net` first, or just use the root `compose.yaml` (it declares the network for you). |
+| `network simplechat-net declared as external, but could not be found` during `./mvnw spring-boot:run` | An included compose file (`infra/lgtm/compose.yaml` or `infra/observability/otel-collector/compose.yaml`) has `networks.simplechat-net.external: true`. Compose's `include:` merge does **not** override the child's `external: true`, so the merged project thinks the network is externally managed and looks for a pre-existing one. | Remove `external: true` from both included files; keep `name: simplechat-net`. The root file owns the network, the children just join it by the pinned name. |
 
 ---
 
