@@ -89,6 +89,21 @@ services:
 
   langfuse-web:
     image: docker.io/langfuse/langfuse:3
+    labels:
+      # Opt out of Spring Boot 4.1.0's new OpenTelemetry Docker
+      # service-connection factories. The langfuse-web image ships an
+      # OTel-compatible API on container port 3001 (langfuse v3 splits
+      # the Next.js UI on 3000 from the API/OTLP on 3001), and Spring
+      # Boot matches the image by its OCI `title: "langfuse"` label.
+      # Without this opt-out, the factories override the explicit
+      # `management.otlp.*.export.url=http://localhost:4318/...` in
+      # `application.yaml` with `http://localhost:3001/api/public/otel/v1/...`,
+      # which then fails with `Connection refused` because only 3000 is
+      # mapped to the host — and langfuse does not ingest metrics or
+      # logs anyway. Keep the app pointed at the otel-collector
+      # fan-out hub. See Spring Boot 4.1.0 reference,
+      # "Docker Compose > Skipping Specific Containers".
+      org.springframework.boot.ignore: "true"
     restart: always
     depends_on:
       postgres:
@@ -129,6 +144,11 @@ services:
 
   langfuse-worker:
     image: docker.io/langfuse/langfuse-worker:3
+    labels:
+      # Same opt-out as langfuse-web. The worker image carries the
+      # same OCI `title: "langfuse"` label and would be matched by
+      # the Spring Boot 4.1.0 OTel service-connection factories.
+      org.springframework.boot.ignore: "true"
     restart: always
     depends_on:
       postgres:
