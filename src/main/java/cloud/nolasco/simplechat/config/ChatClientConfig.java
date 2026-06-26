@@ -18,7 +18,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.ai.chat.prompt.Prompt;
 
-import cloud.nolasco.simplechat.tools.datetime.DateTimeTools;
+import cloud.nolasco.simplechat.tools.datetime.CommonTools;
 
 @Configuration
 public class ChatClientConfig {
@@ -27,16 +27,19 @@ public class ChatClientConfig {
   private Resource systemPrompt;
 
   @Bean
-  public ChatClient chatClient(ChatClient.Builder chatClientBuilder, ChatMemory chatMemory) {
+  public ChatClient chatClient(
+      ChatClient.Builder chatClientBuilder,
+      ChatMemory chatMemory,
+      CommonTools commonTools) {
     SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(systemPrompt);
     Prompt systemPrompt = systemPromptTemplate.create(Map.of("assistantName", "Sofía",
         "DevelopmentName", "Altavista",
-        "greeting", DateTimeTools.greeting()));
+        "greeting", commonTools.greeting()));
 
     return chatClientBuilder
         .defaultSystem(systemPrompt.toString())
         .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
-        .defaultTools(new DateTimeTools())
+        .defaultTools(commonTools)
         .build();
   }
 
