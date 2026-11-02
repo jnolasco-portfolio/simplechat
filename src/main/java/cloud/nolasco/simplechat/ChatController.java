@@ -37,7 +37,6 @@ public class ChatController {
     public Flux<String> chat(
             @PathVariable String userId,
             @RequestBody String request) {
-
         return chatClient
                 .prompt()
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, userId))

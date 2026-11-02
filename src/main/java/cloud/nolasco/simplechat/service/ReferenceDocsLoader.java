@@ -44,7 +44,7 @@ public class ReferenceDocsLoader {
           .query(Integer.class)
           .single();
 
-      log.info("Current count of the Vector Store: {}", count);
+      log.info("Current count of the Vector Store: {} ", count);
       if (count == 0) {
         log.info("Loading context documents into Vector Store");
         // loadData(vectorStore, developerProfile);
@@ -52,7 +52,6 @@ public class ReferenceDocsLoader {
         safeLoad(website);
         safeLoad(brochure);
         safeLoad(projectInventory);
-
         log.info("Application is ready");
       }
     } catch (Exception e) {
