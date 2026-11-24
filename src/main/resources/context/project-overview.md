@@ -1,22 +1,20 @@
 > Sample document — the entities, figures and contact details below are fictional.
 
-# RESIDENCIAL ALTAVISTA
+# Residencial Altavista | Project Overview Fact Sheet
 
-## Overview
+Project: Residencial Altavista
+Location: Punta Esmeralda Golf & Country Club
+Setting: Premium residential development in a secure, resort-like coastal environment.
 
-Residencial Altavista is a premium residential development within the Punta Esmeralda Golf & Country Club, designed to provide an exclusive living experience in a secure, resort-like environment. The community features:
+## Features
 
-- Panoramic views of the El Mirador golf course and the Pacific Ocean
-- Direct access to the protected mangrove reserve and private beach coves
-- State-of-the-art security systems
-- Integrated community amenities
+Views: Panoramic views of the El Mirador golf course and the Pacific Ocean.
+Nature access: Direct access to the protected mangrove reserve and private beach coves.
+Security: State-of-the-art security systems with 24/7 monitoring and a controlled-access perimeter.
+Community: Integrated amenities designed for shared family experiences in a coastal setting.
+Architecture: Modern, sustainable construction using local materials.
 
-## Key Features
+## Development status
 
-- **Architectural Design**: Modern, sustainable construction using local materials
-- **Security**: 24/7 monitoring with controlled access perimeter
-- **Lifestyle**: Designed for shared family experiences in a coastal setting
-
-## Development Status
-
-Currently under construction with expected completion in Q4 2027.
+Status: Under construction.
+Expected completion: Q4 2027.

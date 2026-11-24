@@ -1,10 +1,6 @@
 package cloud.nolasco.simplechat.service;
 
-import java.util.List;
-
-import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.TextReader;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -82,9 +78,9 @@ public class ReferenceDocsLoader {
       TextReader textReader = new TextReader(resource);
       textReader.getCustomMetadata().put("filename", resource.getFilename());
 
-      List<Document> documents = textReader.get();
-      TokenTextSplitter textSplitter = TokenTextSplitter.builder().withChunkSize(128).build();
-      vectorStore.accept(textSplitter.apply(documents));
+      // Context files are flat, self-contained fact sheets. One document per
+      // source keeps every record intact without format-specific splitting.
+      vectorStore.accept(textReader.get());
 
     } catch (Exception e) {
       throw new RuntimeException("Error loading data from resource: " + resource.getFilename(), e);

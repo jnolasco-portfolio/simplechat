@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.ToolCallingAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.ChatMemoryRepository;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
@@ -38,7 +39,10 @@ public class ChatClientConfig {
 
     return chatClientBuilder
         .defaultSystem(systemPrompt.toString())
-        .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+        // Run memory after ToolCallingAdvisor so history survives its loop in Spring AI 2.1.
+        .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory)
+            .order(ToolCallingAdvisor.DEFAULT_ORDER + 100)
+            .build())
         .defaultTools(commonTools)
         .build();
   }
