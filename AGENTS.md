@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-- Spring Boot **4.1.0** REST app using **Spring AI 2.0.0-RC2** with an OpenAI-compatible API
+- Spring Boot **4.1.0** REST app using **Spring AI 2.1.0** with an OpenAI-compatible API
 - PostgreSQL + pgvector for both chat memory ([`JdbcChatMemoryRepository`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java)) and RAG (auto-configured `PgVectorStore`)
 - Streaming chat via [`/stream/{userId}/chat`](src/main/java/cloud/nolasco/simplechat/ChatController.java) returning `Flux<String>`
 - Java 21, Maven (`./mvnw`)
@@ -21,8 +21,8 @@
 # the `include:` mechanism. The AI provider is NOT a Docker service in dev.
 export BASE_URL=http://host.docker.internal:11434/v1
 export OPENAI_API_KEY=sk-...
-export CHAT_MODEL=granite4:7b-a1b-h
-export EMBEDDING_MODEL=mxbai-embed-large
+export CHAT_MODEL=granite4.1:8b
+export EMBEDDING_MODEL=qwen3-embedding:0.6b
 ./mvnw spring-boot:run
 ```
 
@@ -129,11 +129,11 @@ with a clear error if any required variable is missing.
 
 | Component | File | Purpose |
 | --- | --- | --- |
-| `ChatController` | [`ChatController.java`](src/main/java/cloud/nolasco/simplechat/ChatController.java) | REST endpoints for streaming chat, history, and memory management |
-| `ChatClientConfig` | [`config/ChatClientConfig.java`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java) | Builds `ChatClient` with system prompt, `MessageChatMemoryAdvisor`, and `DateTimeTools` |
-| `ReferenceDocsLoader` | [`service/ReferenceDocsLoader.java`](src/main/java/cloud/nolasco/simplechat/service/ReferenceDocsLoader.java) | Loads RAG context documents into the `vector_store` table on `@PostConstruct` |
+| `ChatController` | [`ChatController.java`](src/main/java/cloud/nolasco/simplechat/ChatController.java) | REST endpoints for streaming chat, history, memory management, and RAG via `QuestionAnswerAdvisor` |
+| `ChatClientConfig` | [`config/ChatClientConfig.java`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java) | Builds `ChatClient` with the file-based system prompt, tools from `CommonTools`, and `MessageChatMemoryAdvisor` ordered after `ToolCallingAdvisor` |
+| `ReferenceDocsLoader` | [`service/ReferenceDocsLoader.java`](src/main/java/cloud/nolasco/simplechat/service/ReferenceDocsLoader.java) | Loads each context file as one whole document into `vector_store` on `@PostConstruct` |
 | `IngestService` | [`service/IngestService.java`](src/main/java/cloud/nolasco/simplechat/service/IngestService.java) | Stub (currently empty) |
-| `DateTimeTools` | [`tools/datetime/DateTimeTools.java`](src/main/java/cloud/nolasco/simplechat/tools/datetime/DateTimeTools.java) | `@Tool` for `getCurrentDateTime()`; static `greeting()` used in the system prompt |
+| `CommonTools` | [`tools/datetime/CommonTools.java`](src/main/java/cloud/nolasco/simplechat/tools/datetime/CommonTools.java) | `@Tool` methods for current date/time and greeting; `greeting()` fills the system prompt |
 | `InstallOpenTelemetryAppender` | [`config/InstallOpenTelemetryAppender.java`](src/main/java/cloud/nolasco/simplechat/config/InstallOpenTelemetryAppender.java) | Wires the OTel logback appender to the LGTM stack started by compose |
 
 ## Configuration
@@ -144,22 +144,24 @@ Env vars (see [`application.yaml`](src/main/resources/application.yaml)):
 | --- | --- | --- |
 | `BASE_URL` | `http://host.docker.internal:11434/v1` | OpenAI-compatible AI endpoint |
 | `OPENAI_API_KEY` | `sk-...` | API key |
-| `CHAT_MODEL` | `granite4:7b-a1b-h` | Chat model identifier |
-| `EMBEDDING_MODEL` | `mxbai-embed-large` | Embedding model (1024-dim; must match `vector(1024)` in the changelog) |
+| `CHAT_MODEL` | `granite4.1:8b` | Chat model identifier |
+| `EMBEDDING_MODEL` | `qwen3-embedding:0.6b` | Embedding model (1024-dim; must match `vector(1024)` in the changelog) |
 | `DB_HOST` | `localhost` | PostgreSQL host (prod) |
 | `DB_PORT` | `5432` | PostgreSQL port |
 | `DB_USERNAME` | `postgres` | Database user |
 | `DB_PASSWORD` | `postgres` | Database password |
 
+The app loads an optional `.env` from the working directory via
+`spring.config.import`. Copy `.env.example` to `.env` for local overrides;
+keep real keys out of version control.
+
 ## RAG (Retrieval Augmented Generation)
-) |
-| **Grafana UI port (3002, not 3000)** | `grafana-lgtm` moved to host port 3002 in `infra/lgtm/compose.yaml` — host port 3000 is reserved for `langfuse-web` if you ever start the langfuse stack |
-| **OTel collector owns 4317/4318** | The Spring app's OTel URLs in [`application.yaml`](src/main/resources/application.yaml) point at `http://localhost:4318`; that now hits the **otel-collector** (fan-out), not LGTM directly. If you delete the collector, signals will silently fail |
-| **Langfuse port collisions** | `langfuse-web` wants host 3000, the langfuse stack's own postgres wants 5432. Both are remapped (3000/5432 host, langfuse's pg → 127.0.0.1:5433) to coexist with `chat_memory_db` and `grafana-lgtm` |
-| **`infra/*/compose.yaml` standalone mode** | The lgtm and otel-collector files pin `simplechat-net` by name (no `external: true`). They work both included (root owns the network) and standalone (Compose creates a `simplechat-net` network on the fly). Do **not** add `external: true` back — Compose's `include:` merge does not override it, and the merged project then fails with `network simplechat-net declared as external, but could not be found` |
-- Source documents: [`src/main/resources/context/`](src/main/resources/context/) (markdown files)
-- `ReferenceDocsLoader` reads them at startup, chunks with `TokenTextSplitter` (chunk size 128), and writes to the `vector_store` table in PostgreSQL.
-- At chat time, [`ChatController`](src/main/java/cloud/nolasco/simplechat/ChatController.java) injects `QuestionAnswerAdvisor` over the auto-configured `PgVectorStore`.
+
+- Source documents: [`src/main/resources/context/`](src/main/resources/context/) (markdown fact sheets).
+- [`ReferenceDocsLoader`](src/main/java/cloud/nolasco/simplechat/service/ReferenceDocsLoader.java) stores each source file as **one whole document**. There is no `TokenTextSplitter`; splitting a residence record breaks price and area comparisons.
+- [`ChatController`](src/main/java/cloud/nolasco/simplechat/ChatController.java) uses `QuestionAnswerAdvisor` over the auto-configured `PgVectorStore` with `topK=10`, so all four documents are retrieved.
+- The RAG prompt lives in [`rag-prompt.st`](src/main/resources/prompts/rag-prompt.st). It requires `{query}` and `{question_answer_context}`, compares only `Status: Available` records, and asks for exact Residence IDs and values.
+- [`ReferenceContextFormatTest`](src/test/java/cloud/nolasco/simplechat/context/ReferenceContextFormatTest.java) guards record fields, counts, and the verified superlatives.
 
 ## Testing
 
@@ -169,6 +171,7 @@ Tests use a dedicated **`test`** profile with H2 in-memory — no PostgreSQL or 
 | --- | --- |
 | Test profile config | [`src/test/resources/application-test.yaml`](src/test/resources/application-test.yaml) |
 | Test class | [`src/test/java/cloud/nolasco/simplechat/SimplechatApplicationTests.java`](src/test/java/cloud/nolasco/simplechat/SimplechatApplicationTests.java) |
+| RAG format regression | [`src/test/java/cloud/nolasco/simplechat/context/ReferenceContextFormatTest.java`](src/test/java/cloud/nolasco/simplechat/context/ReferenceContextFormatTest.java) |
 
 ## Database Schema
 
@@ -186,19 +189,25 @@ Managed by **Liquibase** via [`db.changelog-master.yaml`](src/main/resources/db/
 - Java code: `src/main/java/cloud/nolasco/simplechat/`
 - Prompts: `src/main/resources/prompts/` → Spring `classpath:/prompts/`
 - System prompt template variables: `{greeting}`, `{assistantName}`, `{DevelopmentName}` (see [`system-prompt.st`](src/main/resources/prompts/system-prompt.st))
+- RAG prompt template variables: `{query}`, `{question_answer_context}` (see [`rag-prompt.st`](src/main/resources/prompts/rag-prompt.st))
 - Static UI: [`static/components/chat/`](src/main/resources/static/components/chat/) and [`static/components/streamchat/`](src/main/resources/static/components/streamchat/)
 
 ## Pitfalls
 
 | Issue | Details |
 | --- | --- |
-| **Spring AI 2.0.0-RC2** | Release-candidate — check the changelog for breaking changes before bumping |
-| **Reactor streaming** | `chat()` returns `Flux<String>`; errors handled with `.retry(3).onErrorResume()`. Do not remove the `retry` |
+| **Spring AI 2.1 advisor order** | `MessageChatMemoryAdvisor` must run after `ToolCallingAdvisor` in [`ChatClientConfig.java`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java). The earlier order drops injected history in 2.1 |
+| **Reactor streaming** | `chat()` returns `Flux<String>`; errors handled with `.retry(3).onErrorResume()`. The request is wrapped in `Flux.defer` so retries rebuild the advisor chain. Do not remove either the `retry` or the `defer` |
 | **Liquibase migrations** | Run in order per the master changelog. Disabled in tests; the production changelog is not H2-compatible |
 | **No Testcontainers** | Tests rely on H2; no Docker daemon is required to run `./mvnw test` |
-| **`classPath:` typo** | In [`ChatClientConfig.java`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java) the resource is `@Value("classPath:/prompts/system-prompt.st")` (capital `P`). It works on case-insensitive filesystems but is non-standard — should be `classpath:` |
+| **Whole-document ingestion** | Keep one document per context file. Reintroducing chunking splits `Residence` records and breaks superlatives |
+| **Reserved records have no price** | Only Available records carry `Price`; Reserved records carry `Notes`. [`ReferenceContextFormatTest`](src/test/java/cloud/nolasco/simplechat/context/ReferenceContextFormatTest.java) asserts the difference |
 | **Vector store dimensions** | The pgvector column is `vector(1024)`; the embedding model dimension (set in `application.yaml`) must match. Switching to a different embedding model requires a migration |
-| **Dev container project name** | The two compose files only share a network if the docker-compose project name is `simplechat`. See [Docker Compose Layout](#docker-compose-layout-two-files-on-purpose) |
+| **Grafana UI port (3002, not 3000)** | `grafana-lgtm` moved to host port 3002 in `infra/lgtm/compose.yaml` — host port 3000 is reserved for `langfuse-web` if you ever start the langfuse stack |
+| **OTel collector owns 4317/4318** | The Spring app's OTel URLs in [`application.yaml`](src/main/resources/application.yaml) point at `http://localhost:4318`; that now hits the **otel-collector** (fan-out), not LGTM directly. If you delete the collector, signals will silently fail |
+| **Langfuse port collisions** | `langfuse-web` wants host 3000, the langfuse stack's own postgres wants 5432. Both are remapped (3000/5432 host, langfuse's pg → 127.0.0.1:5433) to coexist with `chat_memory_db` and `grafana-lgtm` |
+| **`infra/*/compose.yaml` standalone mode** | The lgtm and otel-collector files pin `simplechat-net` by name (no `external: true`). They work both included (root owns the network) and standalone (Compose creates a `simplechat-net` network on the fly). Do **not** add `external: true` back — Compose's `include:` merge does not override it, and the merged project then fails with `network simplechat-net declared as external, but could not be found` |
+| **Dev container project name** | The two compose files only share a network if the docker-compose project name is `simplechat`. See [Network](#network) |
 
 ## API Endpoints
 

@@ -51,7 +51,9 @@ public class ChatController {
     public Flux<String> chat(
             @PathVariable String userId,
             @RequestBody String request) {
-        return chatClient
+        // A new advisor chain is built per subscription. Retrying the existing Flux
+        // would reuse a consumed chain, so the retry needs a deferred request.
+        return Flux.defer(() -> chatClient
                 .prompt()
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, userId))
                 .advisors(QuestionAnswerAdvisor.builder(vectorStore)
@@ -60,7 +62,7 @@ public class ChatController {
                         .build())
                 .user(request)
                 .stream()
-                .content()
+                .content())
                 .retry(3)
                 .onErrorResume(e -> Flux.just("Lo siento, la conexión fue interrumpida. Please try again."));
     }

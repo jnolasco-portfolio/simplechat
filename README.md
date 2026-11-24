@@ -4,6 +4,7 @@
 
 **A Spring AI chat backend with streaming responses, persistent memory, RAG over your own docs, and pluggable observability.**
 
+[![CI](https://github.com/jnolasco-portfolio/simplechat/actions/workflows/ci.yml/badge.svg)](https://github.com/jnolasco-portfolio/simplechat/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](#-prerequisites)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?logo=springboot&logoColor=white)](#-tech-stack)
 [![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.0--RC2-6DB33F?logo=spring&logoColor=white)](#-tech-stack)
