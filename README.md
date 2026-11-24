@@ -7,7 +7,7 @@
 [![CI](https://github.com/jnolasco-portfolio/simplechat/actions/workflows/ci.yml/badge.svg)](https://github.com/jnolasco-portfolio/simplechat/actions/workflows/ci.yml)
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)](#-prerequisites)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?logo=springboot&logoColor=white)](#-tech-stack)
-[![Spring AI](https://img.shields.io/badge/Spring%20AI-2.0.0--RC2-6DB33F?logo=spring&logoColor=white)](#-tech-stack)
+[![Spring AI](https://img.shields.io/badge/Spring%20AI-2.1.0-6DB33F?logo=spring&logoColor=white)](#-tech-stack)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+%20pgvector-336791?logo=postgresql&logoColor=white)](https://github.com/pgvector/pgvector)
 [![Docker Compose](https://img.shields.io/badge/Docker%20Compose-v2.20%2B-2496ED?logo=docker&logoColor=white)](#-prerequisites)
 [![OpenAI compatible](https://img.shields.io/badge/LLM-OpenAI%20compatible-412991?logo=openai&logoColor=white)](#-prerequisites)
@@ -35,7 +35,7 @@
 | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | 🚀 **Streaming chat**          | `POST /stream/{userId}/chat` returns `Flux<String>` — pipe it straight into an SSE handler.                                 |
 | 🧠 **Per-user memory**         | `MessageChatMemoryAdvisor` + `JdbcChatMemoryRepository` → PostgreSQL.                                                       |
-| 📚 **RAG over your docs**      | `QuestionAnswerAdvisor` + `pgvector` (HNSW). Drop markdown into `src/main/resources/context/` and it loads on startup.      |
+| 📚 **RAG over your docs**      | `QuestionAnswerAdvisor` + `pgvector` (HNSW). Markdown in `src/main/resources/context/` loads as whole documents on first startup. |
 | 🛠️ **Tool calling**            | `CommonTools.getCurrentDateTime()` registered via `defaultTools(...)`.                                                     |
 | 🔌 **Pluggable observability** | OTel traces/metrics/logs go to a fan-out collector → Grafana LGTM (always on) → Langfuse (opt-in).                          |
 | 🧪 **H2 test profile**         | `./mvnw test` runs with no Docker at all.                                                                                   |
@@ -103,7 +103,7 @@ sequenceDiagram
     participant MA as MessageChatMemoryAdvisor
     participant CM as ChatMemory<br/>(Postgres)
     participant LLM as 🤖 LLM provider
-    participant T as DateTimeTools
+    participant T as CommonTools
     participant Col as OTel collector
 
     U->>C: POST /stream/{userId}/chat<br/>(body: "Hola, ¿qué incluye la unidad B-17?")
@@ -111,8 +111,8 @@ sequenceDiagram
     MA->>CM: SELECT * FROM SPRING_AI_CHAT_MEMORY<br/>WHERE conversation_id = ?
     CM-->>MA: prior messages
     C->>QA: augment prompt with RAG context
-    QA->>VS: similaritySearch(user query, topK=...)
-    VS-->>QA: top-k document chunks
+    QA->>VS: similaritySearch(user query, topK=10)
+    VS-->>QA: whole context documents
     C->>LLM: stream(prompt + history + docs + tools)
     alt LLM emits a tool call
         LLM->>T: getCurrentDateTime()
@@ -126,7 +126,7 @@ sequenceDiagram
 
 Key behaviours baked into [`ChatController`](src/main/java/cloud/nolasco/simplechat/ChatController.java) and [`ChatClientConfig`](src/main/java/cloud/nolasco/simplechat/config/ChatClientConfig.java):
 
-- **Retry** — `Flux.retry(3)` so a transient LLM hiccup doesn't drop the connection.
+- **Retry** — `Flux.defer(...).retry(3)` rebuilds the advisor chain on each attempt so a transient LLM hiccup doesn't drop the connection.
 - **Graceful degradation** — `.onErrorResume(...)` returns a friendly Spanish fallback on terminal failure.
 - **System prompt** — loaded from `classpath:/prompts/system-prompt.st` with `{greeting}`, `{assistantName}`, `{DevelopmentName}` placeholders.
 
@@ -150,7 +150,7 @@ Key behaviours baked into [`ChatController`](src/main/java/cloud/nolasco/simplec
 ### 1 · Clone
 
 ```bash
-git clone https://github.com/jrnolascosilva/simplechat.git
+git clone https://github.com/jnolasco-portfolio/simplechat.git
 cd simplechat
 ```
 
@@ -177,12 +177,11 @@ For other providers:
 
 ### 3 · Pick your observability level
 
-The dev graph is **modular** — you only pay for what you need. The table below shows what `./mvnw spring-boot:run` will start and what each thing costs.
+The dev graph is **modular** — core services start automatically; Langfuse is opt-in. The table below shows what `./mvnw spring-boot:run` starts and what each layer costs.
 
 | What you want                                        | Command                                                            | What starts                                                                                     | What you give up                                              |
 | ---------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| 🟢 **Just chat**                                     | `./mvnw spring-boot:run`                                           | `chat_memory_db` only                                                                           | No traces UI. The OTel URLs in `application.yaml` are unused. |
-| 🔵 **+ traces & metrics UI** _(recommended for dev)_ | `./mvnw spring-boot:run`                                           | `chat_memory_db`, `grafana-lgtm`, `otel-collector`                                              | A bit more RAM (~600 MB).                                     |
+| 🟢 **Chat + local observability**                    | `./mvnw spring-boot:run`                                           | `chat_memory_db`, `grafana-lgtm`, `otel-collector`                                              | LLM provider is still external.                               |
 | 🟣 **+ LLM tracing in Langfuse**                     | See [Optional observability stack](#-optional-observability-stack) | All of the above **plus** `langfuse-web`, `langfuse-worker`, postgres, clickhouse, minio, redis | Heavier — ~2-3 min cold start, ~2 GB RAM.                     |
 | ⚪ **No Docker at all (tests)**                      | `./mvnw test`                                                      | H2 in-memory                                                                                    | Nothing — pure CI / unit test path.                           |
 
@@ -225,23 +224,24 @@ All knobs live in [src/main/resources/application.yaml](src/main/resources/appli
 | `LANGFUSE_OTEL_AUTH`     | _(unset)_                              | ⚪        | `Basic <base64(pk:sk)>` — see below. Empty means langfuse export is disabled.                   |
 | `DB_HOST`                | `localhost`                            | 🟡 prod   | PostgreSQL host (prod profile only)                                                             |
 | `DB_PORT`                | `5432`                                 | 🟡 prod   | PostgreSQL port                                                                                 |
+| `POSTGRES_DB`            | _(unset)_                              | 🟡 prod   | PostgreSQL database name (required in prod)                                                    |
 | `DB_USERNAME`            | `postgres`                             | 🟡 prod   | Database user                                                                                   |
 | `DB_PASSWORD`            | `postgres`                             | 🟡 prod   | Database password                                                                               |
 | `SPRING_PROFILES_ACTIVE` | _(unset = dev)_                        | 🟡 prod   | Set to `prod` for production.                                                                   |
 
-> ⚠️ **In dev, do not set `DB_*` env vars.** Spring Boot's `spring.docker.compose` auto-wires the DataSource from the running `chat_memory_db` container via the `org.springframework.boot.service-connection=postgres` label. Setting `DB_*` will break that.
+> ⚠️ **In dev, `DB_*` values in `.env` are unused.** Spring Boot's `spring.docker.compose` auto-wires the DataSource from the running `chat_memory_db` container via the `org.springframework.boot.service-connection=postgres` label. Supply `DB_*` and `POSTGRES_DB` only for the `prod` profile.
 >
-> ⚠️ **In prod, you must set `SPRING_PROFILES_ACTIVE=prod` and all `DB_*` vars.** The prod profile uses `${VAR:?message}` syntax and fails fast at startup with a clear error if any required var is missing.
+> ⚠️ **In prod, you must set `SPRING_PROFILES_ACTIVE=prod`, the `DB_*` vars, and `POSTGRES_DB`.** The prod profile uses `${VAR:?message}` syntax and fails fast at startup with a clear error if any required var is missing.
 
 ---
 
 ## 🔌 API
 
-All endpoints return `text/plain` for streaming and `application/json` for history.
+Streaming uses `text/event-stream`, history is `application/json`, and the delete response is `text/plain`.
 
 | Method   | Path                    | Body                    | Response                 | Notes                                                                                                                                                 |
 | -------- | ----------------------- | ----------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`   | `/stream/{userId}/chat` | raw prompt (text/plain) | `Flux<String>` (chunked) | Streams tokens as they're produced. Errors after 3 retries return the Spanish fallback `"Lo siento, la conexión fue interrumpida. Please try again."` |
+| `POST`   | `/stream/{userId}/chat` | raw prompt (text/plain) | `text/event-stream` from `Flux<String>` | Streams tokens as they're produced. Errors after 3 retries return the Spanish fallback `"Lo siento, la conexión fue interrumpida. Please try again."` |
 | `GET`    | `/{userId}/history`     | —                       | `List<Message>` (JSON)   | Returns up to `MessageWindowChatMemory`'s window of prior messages.                                                                                   |
 | `DELETE` | `/{userId}/history`     | —                       | `String` (text)          | Clears the user's conversation history.                                                                                                               |
 
@@ -263,7 +263,7 @@ Tests run under the **`test`** profile:
 
 - H2 in-memory (PostgreSQL mode)
 - Liquibase **disabled** (the prod changelog uses `CREATE EXTENSION vector` and `vector(...)` syntax H2 cannot execute)
-- `ChatClient`, `ChatMemory`, `IngestService` are mocked via `@TestConfiguration`
+- Full-context tests mock `ChatClient`, `ChatMemory`, `VectorStore`, and `IngestService`; controller slice tests use `@MockitoBean`
 
 > A `H2 ... "VECTOR" not found` warning in the test log is expected and harmless — the prod schema is managed by Liquibase, not by Hibernate auto-DDL.
 
@@ -277,7 +277,7 @@ See [`.github/instructions/testing.instructions.md`](.github/instructions/testin
 | ------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Language      | Java 21                                                       | Records, pattern matching, virtual-thread-friendly                                                                                                                   |
 | Framework     | Spring Boot 4.1.0                                             | Web MVC, JDBC, Actuator, DevTools                                                                                                                                    |
-| AI            | Spring AI 2.0.0-RC2                                           | `spring-ai-starter-model-openai`, `spring-ai-starter-model-chat-memory-repository-jdbc`, `spring-ai-vector-store-advisor`, `spring-ai-starter-vector-store-pgvector` |
+| AI            | Spring AI 2.1.0                                               | `spring-ai-starter-model-openai`, `spring-ai-starter-model-chat-memory-repository-jdbc`, `spring-ai-vector-store-advisor`, `spring-ai-starter-vector-store-pgvector` |
 | Database      | PostgreSQL 16 + pgvector                                      | HNSW index, 1024-dim embeddings                                                                                                                                      |
 | Migrations    | Liquibase                                                     | `db/changelog/db.changelog-master.yaml`                                                                                                                              |
 | Streaming     | Project Reactor                                               | `Flux<String>` + SSE                                                                                                                                                 |
@@ -315,16 +315,23 @@ simplechat/
     │   │   ├── service/
     │   │   │   ├── ReferenceDocsLoader.java
     │   │   │   └── IngestService.java
-    │   │   └── tools/datetime/DateTimeTools.java
+    │   │   └── tools/datetime/CommonTools.java
     │   └── resources/
     │       ├── application.yaml            # default (dev) profile
     │       ├── application-prod.yaml       # prod profile (DB_* required)
+    │       ├── prompts/rag-prompt.st
     │       ├── prompts/system-prompt.st
     │       ├── context/*.md                # RAG source docs
     │       ├── db/changelog/               # Liquibase
     │       └── static/components/          # streamchat.html / chat.html UIs
     └── test/
-        ├── java/cloud/nolasco/simplechat/SimplechatApplicationTests.java
+        ├── java/cloud/nolasco/simplechat/
+        │   ├── ChatControllerTest.java
+        │   ├── ChatControllerWebTest.java
+        │   ├── context/ReferenceContextFormatTest.java
+        │   ├── prompts/PromptResourcesTest.java
+        │   ├── service/ReferenceDocsLoaderTest.java
+        │   └── SimplechatApplicationTests.java
         └── resources/application-test.yaml # H2 in-memory
 ```
 
@@ -446,14 +453,14 @@ docker compose up -d --force-recreate --no-deps otel-collector
 
 # Run as a plain JVM app
 SPRING_PROFILES_ACTIVE=prod \
-DB_HOST=... DB_PORT=5432 DB_USERNAME=... DB_PASSWORD=... \
+DB_HOST=... POSTGRES_DB=... DB_USERNAME=... DB_PASSWORD=... \
 java -jar target/simplechat-0.0.1-SNAPSHOT.jar
 ```
 
 The prod profile:
 
 - disables Spring Boot's Docker Compose integration (`compose is excluded from the fat jar`)
-- reads `DB_HOST` / `DB_PORT` / `DB_USERNAME` / `DB_PASSWORD` / `DB_NAME` from the environment (required — fails fast with `${VAR:?message}` if any is missing)
+- reads `DB_HOST`, `POSTGRES_DB`, `DB_USERNAME`, and `DB_PASSWORD` from the environment; `DB_PORT` defaults to `5432`. Required variables fail fast with `${VAR:?message}`.
 - runs Liquibase migrations on startup
 - points at whatever PostgreSQL + pgvector you provision
 
