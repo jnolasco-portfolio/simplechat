@@ -14,6 +14,7 @@
 
 [Features](#-features) ·
 [Architecture](#-architecture) ·
+[Demo](#-demo) ·
 [Interaction](#-interaction) ·
 [Quick start](#-quick-start) ·
 [Optional stack](#-optional-observability-stack) ·
@@ -208,6 +209,17 @@ Then open the UI in a browser:
 
 - http://localhost:8082/components/streamchat/streamchat.html — streaming chat with markdown + KaTeX rendering
 - http://localhost:8082/components/chat/chat.html — non-streaming chat
+
+---
+
+## 🎬 Demo
+
+| | |
+| --- | --- |
+| ![Streaming chat in the browser UI](docs/assets/demo-chat.gif) | ![Traces in Grafana LGTM](docs/assets/grafana-traces.png) |
+| **Streaming chat** — tokens, markdown and KaTeX render as they arrive in `streamchat.html`. | **Observability** — the OTel collector fans traces out to Grafana on `:3002` (Langfuse is opt-in). |
+
+The corpus in the demo is fictional — see the note at the top of this README.
 
 ---
 
@@ -514,7 +526,7 @@ The OTel URLs in `application.yaml` are the same as in dev — point them at any
 
 ## 📄 License
 
-This project is released under the MIT License. See `LICENSE` (add one if you intend to open-source) or update this section to match your chosen licence.
+MIT — see [`LICENSE`](LICENSE).
 
 <div align="center">
 
