@@ -24,10 +24,10 @@ public class ReferenceDocsLoader {
   private Resource developerProfile;
 
   @Value("classpath:/context/project-overview.md")
-  private Resource website;
+  private Resource projectOverview;
 
   @Value("classpath:/context/project-brochure.md")
-  private Resource brochure;
+  private Resource projectBrochure;
 
   @Value("classpath:/context/project-inventory.md")
   private Resource projectInventory;
@@ -49,8 +49,8 @@ public class ReferenceDocsLoader {
         log.info("Loading context documents into Vector Store");
         // loadData(vectorStore, developerProfile);
         safeLoad(developerProfile);
-        safeLoad(website);
-        safeLoad(brochure);
+        safeLoad(projectOverview);
+        safeLoad(projectBrochure);
         safeLoad(projectInventory);
         log.info("Application is ready");
       }
