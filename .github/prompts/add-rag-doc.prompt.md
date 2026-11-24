@@ -16,7 +16,7 @@ Wire a new markdown source into [`ReferenceDocsLoader`](src/main/java/cloud/nola
 Ask the user for:
 
 1. **Source path** — where the `.md` lives. If it is not under `src/main/resources/context/` already, copy it there first.
-2. **Field name** — short Java identifier for the `@Value` injection, in camelCase. The existing convention is: `developerProfile`, `website`, `brochure`, `projectInventory`.
+2. **Field name** — short Java identifier for the `@Value` injection, in camelCase. The existing convention is: `developerProfile`, `projectOverview`, `projectBrochure`, `projectInventory`.
 3. **Filename metadata** — already auto-populated as `filename` in `TextReader`; do not set it manually.
 
 ## Steps

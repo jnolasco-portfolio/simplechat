@@ -23,6 +23,11 @@
 
 ---
 
+> **Sample data.** The RAG corpus under `src/main/resources/context/` is **fictional**.
+> *Grupo Vértice*, *Residencial Altavista* and *Punta Esmeralda Golf & Country Club*
+> are invented for this demo, and every figure (unit counts, areas, prices) is synthetic.
+> Nothing here describes a real company or development.
+
 ## ✨ Features
 
 |                                |                                                                                                                             |
@@ -30,7 +35,7 @@
 | 🚀 **Streaming chat**          | `POST /stream/{userId}/chat` returns `Flux<String>` — pipe it straight into an SSE handler.                                 |
 | 🧠 **Per-user memory**         | `MessageChatMemoryAdvisor` + `JdbcChatMemoryRepository` → PostgreSQL.                                                       |
 | 📚 **RAG over your docs**      | `QuestionAnswerAdvisor` + `pgvector` (HNSW). Drop markdown into `src/main/resources/context/` and it loads on startup.      |
-| 🛠️ **Tool calling**            | `DateTimeTools.getCurrentDateTime()` registered via `defaultTools(...)`.                                                    |
+| 🛠️ **Tool calling**            | `CommonTools.getCurrentDateTime()` registered via `defaultTools(...)`.                                                     |
 | 🔌 **Pluggable observability** | OTel traces/metrics/logs go to a fan-out collector → Grafana LGTM (always on) → Langfuse (opt-in).                          |
 | 🧪 **H2 test profile**         | `./mvnw test` runs with no Docker at all.                                                                                   |
 | 🐳 **Zero-config dev**         | Spring Boot auto-starts the dev graph from the root `compose.yaml`; the app boots, the DB is ready, the collector is wired. |

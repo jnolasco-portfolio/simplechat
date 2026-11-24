@@ -51,7 +51,7 @@ The description on `@Tool` is the **only** signal the model has for picking this
 
 | Placeholder | Source | Type |
 | --- | --- | --- |
-| `{greeting}` | `DateTimeTools.greeting()` static — picks "Good morning/afternoon/evening" from server time | String |
+| `{greeting}` | `CommonTools.greeting()` static — picks "Good morning/afternoon/evening" from server time | String |
 | `{assistantName}` | hard-coded `"Sofía"` in `ChatClientConfig` | String |
 | `{DevelopmentName}` | hard-coded `"Altavista"` in `ChatClientConfig` | String |
 
