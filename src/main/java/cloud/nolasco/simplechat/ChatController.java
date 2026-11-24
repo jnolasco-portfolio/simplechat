@@ -9,6 +9,8 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,28 +30,21 @@ public class ChatController {
     // superlatives compare every residence.
     private static final int RAG_TOP_K = 10;
 
-    private static final PromptTemplate RAG_PROMPT_TEMPLATE = new PromptTemplate("""
-            Answer only from the conversation history and the context below.
-            - Use earlier turns when the question refers to something the user said before.
-            - Each residence record starts with "Residence <ID>" and contains pipe-separated fields.
-            - For superlatives, compare every record with Status: Available. Ignore Reserved and Sold records.
-            - State the exact Residence ID and value from the matching record. If it is not in the context, say so.
-            Question: {query}
-            Context:
-            ---------------------
-            {question_answer_context}
-            ---------------------
-            """);
-
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
     private final VectorStore vectorStore;
+    private final PromptTemplate ragPromptTemplate;
 
-    public ChatController(ChatClient chatClient, ChatMemory chatMemory, VectorStore vectorStore) {
+    public ChatController(
+            ChatClient chatClient,
+            ChatMemory chatMemory,
+            VectorStore vectorStore,
+            @Value("classpath:/prompts/rag-prompt.st") Resource ragPrompt) {
 
         this.chatClient = chatClient;
         this.chatMemory = chatMemory;
         this.vectorStore = vectorStore;
+        this.ragPromptTemplate = new PromptTemplate(ragPrompt);
     }
 
     @PostMapping("/stream/{userId}/chat")
@@ -61,7 +56,7 @@ public class ChatController {
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, userId))
                 .advisors(QuestionAnswerAdvisor.builder(vectorStore)
                         .searchRequest(SearchRequest.builder().topK(RAG_TOP_K).build())
-                        .promptTemplate(RAG_PROMPT_TEMPLATE)
+                        .promptTemplate(ragPromptTemplate)
                         .build())
                 .user(request)
                 .stream()
