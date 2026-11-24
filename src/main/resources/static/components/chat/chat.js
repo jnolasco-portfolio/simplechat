@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const uiContainer = document.querySelector('.gemini-ui-engine');
+  const uiContainer = document.querySelector('.chat-ui');
   const chatForm = document.getElementById('chat-form');
   const userInput = document.getElementById('user-input');
   const sendBtn = document.getElementById('send-btn');
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const activeSkeleton = document.querySelector('.skeleton-loading-bubble');
     if (activeSkeleton) activeSkeleton.remove();
 
-    appendMessageNode('Generación cancelada por el usuario.', 'bot');
+    appendMessageNode('Generation cancelled by the user.', 'bot');
     resetInputCapsuleToReady();
   }
 
@@ -107,13 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       loadingNode.remove();
-      appendMessageNode(`Recibido. Tu consulta: "${prompt}" se ha procesado con éxito en el servidor local.`, 'bot');
+      appendMessageNode(`Received. Your query: "${prompt}" was processed successfully on the local server.`, 'bot');
       resetInputCapsuleToReady();
 
     } catch (error) {
       if (error.name !== 'AbortError') {
         loadingNode.remove();
-        appendMessageNode('Error al conectar con el asistente de servicio.', 'bot');
+        appendMessageNode('Error connecting to the service assistant.', 'bot');
         resetInputCapsuleToReady();
       }
     }

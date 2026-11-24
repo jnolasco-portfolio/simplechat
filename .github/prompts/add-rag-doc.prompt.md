@@ -4,7 +4,7 @@ description: "Add a new RAG source document to the simplechat vector store. Drop
 
 # Add a RAG document
 
-Wire a new markdown source into [`ReferenceDocsLoader`](src/main/java/cloud/nolasco/simplechat/service/ReferenceDocsLoader.java) so it gets chunked, embedded, and pushed into the `vector_store` table on the next startup.
+Wire a new markdown source into [`ReferenceDocsLoader`](src/main/java/cloud/nolasco/simplechat/service/ReferenceDocsLoader.java) so it gets embedded as **one whole document** and pushed into the `vector_store` table on the next startup.
 
 ## When to use
 
@@ -18,6 +18,7 @@ Ask the user for:
 1. **Source path** — where the `.md` lives. If it is not under `src/main/resources/context/` already, copy it there first.
 2. **Field name** — short Java identifier for the `@Value` injection, in camelCase. The existing convention is: `developerProfile`, `projectOverview`, `projectBrochure`, `projectInventory`.
 3. **Filename metadata** — already auto-populated as `filename` in `TextReader`; do not set it manually.
+4. **Whether the corpus is already seeded** — `ReferenceDocsLoader` only ingests when `vector_store` is empty. If the table already has rows, the new document is silently ignored on restart unless the table is cleared first.
 
 ## Steps
 
@@ -33,13 +34,18 @@ Ask the user for:
 
 3. In `init()`, add a `safeLoad(<fieldName>);` line next to the other `safeLoad(...)` calls. **Do not call `loadData` directly** — `safeLoad` is the version that catches per-doc failures without breaking the rest of startup.
 4. Re-run `./mvnw test` to make sure the loader bean still wires.
-5. If the project is running locally, restart it and tail the logs for `Loading context documents into Vector Store` followed by no `Skipping reference document` warnings.
+5. If the project is running locally, restart it and tail the logs for `Loading context documents into Vector Store` followed by no `Skipping reference document` warnings. If the store was already populated, clear it first so the whole corpus is re-embedded together:
+
+   ```bash
+   docker compose exec chat_memory_db \
+     psql -U postgres -d chat_memory_db -c 'TRUNCATE vector_store;'
+   ```
 
 ## Pitfalls
 
-- **Newline endings / encoding** — `TextReader` reads bytes. If the file is UTF-8 with BOM, strip the BOM; otherwise the first chunk starts with `\ufeff` and degrades embedding quality.
-- **Oversize files** — `TokenTextSplitter.withChunkSize(128)` produces many chunks. A 100-page brochure is fine; a 1000-page dump will bloat the `vector_store` table and slow `/stream/.../chat`. Consider splitting upstream.
-- **Tables and code blocks** — markdown tables are tokenized naively; if the source has many short rows, consider a custom splitter or a pre-processed CSV. Out of scope for this prompt.
+- **Newline endings / encoding** — `TextReader` reads bytes. If the file is UTF-8 with BOM, strip the BOM; otherwise the embedded document starts with `\ufeff` and degrades embedding quality.
+- **No chunking** — the loader deliberately embeds each file as **one** document; there is no `TokenTextSplitter`. That keeps flat fact sheets intact, but a file must be small enough to fit the embedding model's input in one piece.
+- **Records must not span files** — superlative comparisons ("the cheapest available residence") rely on every record living in one document. If a new source repeats records that already exist in another file, the model sees them twice.
 - **Filename collisions** — `filename` is stored in the document metadata. Two docs with the same name will collide in the metadata even if their paths differ. Rename before adding.
 
 ## After the change

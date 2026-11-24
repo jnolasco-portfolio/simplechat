@@ -95,10 +95,6 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.ai</groupId>
-			<artifactId>spring-ai-markdown-document-reader</artifactId>
-		</dependency>
 		<!--
 		Auto-start services declared in compose.yaml when running the JAR locally
 		(dev-time only). `optional=true` is the load-bearing flag: it tells

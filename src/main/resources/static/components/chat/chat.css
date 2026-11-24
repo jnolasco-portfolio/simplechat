@@ -39,7 +39,7 @@ body {
   overflow: hidden;
 }
 
-.gemini-ui-engine {
+.chat-ui {
   width: 100%;
   max-width: var(--chat-max-width);
   height: 100vh;
@@ -48,11 +48,11 @@ body {
   flex-direction: column;
 }
 
-.gemini-ui-engine.initial-landing {
+.chat-ui.initial-landing {
   justify-content: center;
 }
 
-.gemini-ui-engine:not(.initial-landing) {
+.chat-ui:not(.initial-landing) {
   justify-content: flex-start;
 }
 
@@ -241,14 +241,14 @@ body {
   border-radius: 4px;
   background: linear-gradient(90deg, #1e1f20 25%, #2a2b2d 50%, #1e1f20 75%);
   background-size: 200% 100%;
-  animation: geminiShimmer 1.5s infinite linear;
+  animation: shimmer 1.5s infinite linear;
 }
 
 .skeleton-line.short {
   width: 65%;
 }
 
-@keyframes geminiShimmer {
+@keyframes shimmer {
   0% {
     background-position: 200% 0;
   }

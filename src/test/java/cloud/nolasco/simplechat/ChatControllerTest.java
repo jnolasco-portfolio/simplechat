@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 class ChatControllerTest {
 
   private static final String FALLBACK =
-      "Lo siento, la conexión fue interrumpida. Please try again.";
+      "Sorry, the connection was interrupted. Please try again.";
 
   private ChatModel chatModel;
   private ChatMemory chatMemory;

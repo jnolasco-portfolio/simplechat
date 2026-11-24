@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const uiContainer = document.querySelector('.gemini-ui-engine');
+  const uiContainer = document.querySelector('.chat-ui');
   const chatForm = document.getElementById('chat-form');
   const userInput = document.getElementById('user-input');
   const sendBtn = document.getElementById('send-btn');
